@@ -647,9 +647,9 @@ func (n *Nova) handleRunServer(body []byte, w http.ResponseWriter, r *http.Reque
 	n.buildServerLinks(&server)
 	// set some IP addresses
 	addr := fmt.Sprintf("127.10.0.%d", nextServer)
-	server.Addresses["public"] = []nova.IPAddress{{4, addr}, {6, "::dead:beef:f00d"}}
+	server.Addresses["public"] = []nova.IPAddress{{4, addr, "floating"}, {6, "::dead:beef:f00d", "floating"}}
 	addr = fmt.Sprintf("127.0.0.%d", nextServer)
-	server.Addresses["private"] = []nova.IPAddress{{4, addr}, {6, "::face::000f"}}
+	server.Addresses["private"] = []nova.IPAddress{{4, addr, "fixed"}, {6, "::face::000f", "fixed"}}
 	if err := n.addServer(server); err != nil {
 		return err
 	}
