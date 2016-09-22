@@ -96,12 +96,20 @@ func NewSecurityGroupAlreadyExistsError(id string) *ServerError {
 	return serverErrorf(409, "A security group with id %s already exists", id)
 }
 
+func NewNeutronSecurityGroupByIDNotFoundError(groupId string) *ServerError {
+	return serverErrorf(404, "Security Group %s does not exist", groupId)
+}
+
 func NewSecurityGroupByIDNotFoundError(groupId string) *ServerError {
 	return serverErrorf(404, "No such security group %s", groupId)
 }
 
 func NewSecurityGroupByNameNotFoundError(name string) *ServerError {
 	return serverErrorf(404, "No such security group named %q", name)
+}
+
+func NewNeutronSecurityGroupByNameNotFoundError(name string) *ServerError {
+	return serverErrorf(404, "Security Group %s does not exist", name)
 }
 
 func NewSecurityGroupRuleAlreadyExistsError(id string) *ServerError {
@@ -114,6 +122,14 @@ func NewCannotAddTwiceRuleToGroupError(ruleId, groupId string) *ServerError {
 
 func NewUnknownSecurityGroupError(groupId string) *ServerError {
 	return serverErrorf(409, "Unknown source security group %s", groupId)
+}
+
+func NewSecurityGroupProtocolRequiresPorts() *ServerError {
+	return serverErrorf(400, "Must also specify protocol if port range is given.")
+}
+
+func NewInvalidDirectionSecurityGroupError(direction string) *ServerError {
+	return serverErrorf(409, "Unknown security group direction %s", direction)
 }
 
 func NewSecurityGroupRuleNotFoundError(ruleId string) *ServerError {
@@ -150,4 +166,8 @@ func NewNoFloatingIPsToRemoveError(serverId string) *ServerError {
 
 func NewNoFloatingIPsError(serverId, ipId string) *ServerError {
 	return serverErrorf(404, "Server %q does not have floating IP %s", serverId, ipId)
+}
+
+func NewNetworkIdNotFoundError(networkId string) *ServerError {
+	return serverErrorf(400, "Unknown network id %s", networkId)
 }
