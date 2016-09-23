@@ -9,14 +9,14 @@ import (
 
 	"gopkg.in/goose.v1/client"
 	"gopkg.in/goose.v1/identity"
+	"gopkg.in/goose.v1/neutron"
 	"gopkg.in/goose.v1/testservices"
 	"gopkg.in/goose.v1/testservices/hook"
-	"gopkg.in/goose.v1/neutron"
 	"gopkg.in/goose.v1/testservices/openstackservice"
 )
 
 func registerLocalTests() {
-        // noop, called by local test suite.
+	// noop, called by local test suite.
 }
 
 // localLiveSuite runs tests from LiveTests using a fake
