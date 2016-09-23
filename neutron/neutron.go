@@ -26,7 +26,7 @@ type NetworkV2 struct {
 	Name              string   // User-provided name for the network range
 	SubnetIds         []string `json:"subnets"`         // an array of subnet UUIDs
 	External          bool     `json:"router:external"` // is this network connected to an external router
-	AvailabilityZones string   `json:"router:availability_zones"`
+	AvailabilityZones []string `json:"availability_zones"`
 	TenantId          string   `json:"tenant_id"`
 }
 
