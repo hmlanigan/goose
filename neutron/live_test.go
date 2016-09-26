@@ -102,6 +102,11 @@ func (s *LiveTests) TestListNetworksV2(c *gc.C) {
 		c.Check(network.Id, gc.Not(gc.Equals), "")
 		c.Check(network.Name, gc.Not(gc.Equals), "")
 	}
+	firstNetwork := networks[0]
+	foundNetwork, err := s.neutron.GetNetworkV2(firstNetwork.Id)
+	c.Assert(err, gc.IsNil)
+	c.Check(foundNetwork.Id, gc.Equals, firstNetwork.Id)
+	c.Check(foundNetwork.Name, gc.Equals, firstNetwork.Name)
 }
 
 func (s *LiveTests) TestSubnetsV2(c *gc.C) {

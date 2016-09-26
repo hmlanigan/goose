@@ -63,6 +63,20 @@ func (c *Client) ListNetworksV2() ([]NetworkV2, error) {
 	return resp.Networks, nil
 }
 
+// GetNetworkV2 gives details on available subnets
+func (c *Client) GetNetworkV2(netID string) (*NetworkV2, error) {
+	var resp struct {
+		Network NetworkV2 `json:"network"`
+	}
+	url := fmt.Sprintf("%s/%s", ApiNetworksV2, netID)
+	requestData := goosehttp.RequestData{RespValue: &resp}
+	err := c.client.SendRequest(client.GET, "network", url, &requestData)
+	if err != nil {
+		return nil, errors.Newf(err, "failed to get network detail")
+	}
+	return &resp.Network, nil
+}
+
 // ListSubnetsV2 gives details on available subnets
 func (c *Client) ListSubnetsV2() ([]SubnetV2, error) {
 	var resp struct {
