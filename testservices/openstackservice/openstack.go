@@ -111,7 +111,7 @@ func (openstack *Openstack) SetupHTTP(mux *http.ServeMux) {
 		openstack.FallbackIdentity.SetupHTTP(mux)
 	}
 	openstack.Nova.SetupHTTP(mux)
-	//openstack.Neutron.SetupHTTP(mux)
+	openstack.Neutron.SetupHTTP(mux)
 	openstack.Swift.SetupHTTP(mux)
 
 	// Handle root calls to be able to return auth information or fallback
