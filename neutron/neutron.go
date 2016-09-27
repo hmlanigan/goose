@@ -32,12 +32,12 @@ type NetworkV2 struct {
 
 // SubnetV2 contains details about a labeled subnet
 type SubnetV2 struct {
-	Id              string            `json:"id"`         // UUID of the resource
-	NetworkId       string            `json:"network_id"` // UUID of the related network
-	Name            string            // User-provided name for the subnet
-	Cidr            string            `json:"cidr"` // IP range covered by the subnet
-	AllocationPools map[string]string `json:"allocation_pools"`
-	TenantId        string            `json:"tenant_id"`
+	Id              string        `json:"id"`         // UUID of the resource
+	NetworkId       string        `json:"network_id"` // UUID of the related network
+	Name            string        // User-provided name for the subnet
+	Cidr            string        `json:"cidr"` // IP range covered by the subnet
+	AllocationPools []interface{} `json:"allocation_pools"`
+	TenantId        string        `json:"tenant_id"`
 }
 
 // Client provides a means to access the OpenStack Compute Service.
