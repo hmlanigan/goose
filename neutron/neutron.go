@@ -20,7 +20,7 @@ const (
 	ApiSecurityGroupRulesV2 = "v2.0/security-group-rules"
 )
 
-// Networks contains details about a labeled network
+// NetworkV2 contains details about a labeled network
 type NetworkV2 struct {
 	Id                string   `json:"id"` // UUID of the resource
 	Name              string   // User-provided name for the network range
@@ -30,14 +30,14 @@ type NetworkV2 struct {
 	TenantId          string   `json:"tenant_id"`
 }
 
-// Subnet contains details about a labeled subnet
+// SubnetV2 contains details about a labeled subnet
 type SubnetV2 struct {
-	Id              string        `json:"id"`         // UUID of the resource
-	NetworkId       string        `json:"network_id"` // UUID of the related network
-	Name            string        // User-provided name for the subnet
-	Cidr            string        `json:"cidr"` // IP range covered by the subnet
-	AllocationPools []interface{} `json:"allocation_pools"`
-	TenantId        string        `json:"tenant_id"`
+	Id              string            `json:"id"`         // UUID of the resource
+	NetworkId       string            `json:"network_id"` // UUID of the related network
+	Name            string            // User-provided name for the subnet
+	Cidr            string            `json:"cidr"` // IP range covered by the subnet
+	AllocationPools map[string]string `json:"allocation_pools"`
+	TenantId        string            `json:"tenant_id"`
 }
 
 // Client provides a means to access the OpenStack Compute Service.
@@ -186,7 +186,7 @@ type SecurityGroupRuleV2 struct {
 	RemoteIPPrefix string  `json:"remote_ip_prefix"`
 	RemoteGroupID  string  `json:"remote_group_id"`
 	EthernetType   string  `json:"ethertype"`
-	Direction      string  `json:"direction"`
+	Direction      string  `json:"direction"` // Required
 	Id             string  `json:",omitempty"`
 	TenantId       string  `json:"tenant_id,omitempty"`
 }
@@ -200,7 +200,7 @@ type SecurityGroupV2 struct {
 	Description string
 }
 
-// ListSecurityGroups lists IDs, names, and other details for all security groups.
+// ListSecurityGroupsV2 lists IDs, names, and other details for all security groups.
 func (c *Client) ListSecurityGroupsV2() ([]SecurityGroupV2, error) {
 	var resp struct {
 		Groups []SecurityGroupV2 `json:"security_groups"`
@@ -213,7 +213,7 @@ func (c *Client) ListSecurityGroupsV2() ([]SecurityGroupV2, error) {
 	return resp.Groups, nil
 }
 
-// GetSecurityGroupByName returns the named security group.
+// SecurityGroupByNameV2 returns the named security group.
 // OpenStack now supports filtering with API calls.
 // More than one Security Group may be returned, as names are not unique
 // e.g. name=default
@@ -230,7 +230,7 @@ func (c *Client) SecurityGroupByNameV2(name string) ([]SecurityGroupV2, error) {
 	return resp.Groups, nil
 }
 
-// CreateSecurityGroup creates a new security group.
+// CreateSecurityGroupV2 creates a new security group.
 func (c *Client) CreateSecurityGroupV2(name, description string) (*SecurityGroupV2, error) {
 	var req struct {
 		SecurityGroupV2 struct {
@@ -256,7 +256,7 @@ func (c *Client) CreateSecurityGroupV2(name, description string) (*SecurityGroup
 	return &resp.SecurityGroup, nil
 }
 
-// DeleteSecurityGroup deletes the specified security group.
+// DeleteSecurityGroupV2 deletes the specified security group.
 func (c *Client) DeleteSecurityGroupV2(groupId string) error {
 	url := fmt.Sprintf("%s/%s", ApiSecurityGroupsV2, groupId)
 	requestData := goosehttp.RequestData{ExpectedStatus: []int{http.StatusNoContent}}
@@ -267,7 +267,7 @@ func (c *Client) DeleteSecurityGroupV2(groupId string) error {
 	return err
 }
 
-// UpdateSecurityGroup updates the name and description of the given group.
+// UpdateSecurityGroupV2 updates the name and description of the given group.
 func (c *Client) UpdateSecurityGroupV2(groupId, name, description string) (*SecurityGroupV2, error) {
 	var req struct {
 		SecurityGroupV2 struct {
