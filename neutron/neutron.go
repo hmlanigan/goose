@@ -313,7 +313,7 @@ type RuleInfoV2 struct {
 	Direction string `json:"direction"`
 
 	// IPProtocol is optional, and if specified must be "tcp", "udp" or
-	// "icmp" (in this case, both PortRangeMax and PortRangeMin can be -1).
+	// "icmp" (in this case, both PortRangeMax and PortRangeMin blank ).
 	IPProtocol string `json:"protocol,omitempty"`
 
 	// The maximum port number in the range that is matched by the

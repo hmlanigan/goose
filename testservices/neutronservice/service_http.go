@@ -142,8 +142,7 @@ The resource could not be found.
 	}
 	errNoVersion = &errorResponse{
 		http.StatusOK,
-		`{"versions": [{"status": "CURRENT", "updated": "2011-01-21` +
-			`T11:33:21Z", "id": "v2.0", "links": [{"href": "$ENDPOINT$", "rel": "self"}]}]}`,
+		`{"versions": [{"status": "CURRENT", "id": "v2.0", "links": [{"href": "$ENDPOINT$/v2.0", "rel": "self"}]}]}`,
 		"application/json",
 		"no version specified in URL",
 		nil,
@@ -324,6 +323,7 @@ func (n *Neutron) handleRoot(w http.ResponseWriter, r *http.Request) error {
 	if r.URL.Path == "/" {
 		return errNoVersion
 	}
+	fmt.Printf("handleRoot(): returning errMultipleChoices\n")
 	return errMultipleChoices
 }
 
@@ -347,7 +347,7 @@ func newUUID() (string, error) {
 func (n *Neutron) processGroupId(w http.ResponseWriter, r *http.Request) (*neutron.SecurityGroupV2, error) {
 	groupId := path.Base(r.URL.Path)
 	apiFunc := path.Base(neutron.ApiSecurityGroupsV2)
-	fmt.Printf("processGroupId(): %s maybe equal %s\n", groupId, apiFunc)
+	//fmt.Printf("processGroupId(): %s maybe equal %s\n", groupId, apiFunc)
 	if groupId != apiFunc {
 		group, err := n.securityGroup(groupId)
 		if err != nil {
@@ -360,8 +360,8 @@ func (n *Neutron) processGroupId(w http.ResponseWriter, r *http.Request) (*neutr
 
 // handleSecurityGroups handles the /v2.0/security-groups HTTP API.
 func (n *Neutron) handleSecurityGroups(w http.ResponseWriter, r *http.Request) error {
-	fmt.Printf("handleSecurityGroups(): r.Method = %s\n", r.Method)
-	fmt.Printf("handleSecurityGroups(): r.URL = %s\n", r.URL)
+	//fmt.Printf("handleSecurityGroups(): r.Method = %s\n", r.Method)
+	//fmt.Printf("handleSecurityGroups(): r.URL = %s\n", r.URL)
 	switch r.Method {
 	case "GET":
 		group, err := n.processGroupId(w, r)
@@ -700,7 +700,8 @@ func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
 	// /$v/security-groups matches /v2.0/security-groups
 	handlers := map[string]http.Handler{
 		// "/":			n.handler((*Neutron).handleApiVersions,
-		// "/v2.0/":			n.handler((*Neutron).handleApiVersions,
+		// "/v2.0":			n.handler((*Neutron).handleApiVersions,
+		"/v2.0/":	errBadRequest,
 		"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
 		"/v2.0/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
 		"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),

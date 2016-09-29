@@ -108,6 +108,10 @@ func NewSecurityGroupRuleAlreadyExistsError(id string) *ServerError {
 	return serverErrorf(409, "A security group rule with id %s already exists", id)
 }
 
+func NewNeutronSecurityGroupRuleAlreadyExistsError(parentId string) *ServerError {
+	return serverErrorf(409, "Security group rule already exists. Group id is %s.", parentId)
+}
+
 func NewCannotAddTwiceRuleToGroupError(ruleId, groupId string) *ServerError {
 	return serverErrorf(409, "Cannot add twice rule %s to security group %s", ruleId, groupId)
 }
@@ -118,6 +122,10 @@ func NewUnknownSecurityGroupError(groupId string) *ServerError {
 
 func NewSecurityGroupRuleNotFoundError(ruleId string) *ServerError {
 	return serverErrorf(404, "No such security group rule %s", ruleId)
+}
+
+func NewInvalidDirectionSecurityGroupError(direction string) *ServerError {
+	return serverErrorf(400, "Invalid input for direction. Reason: %s is not ingress or egress.", direction)
 }
 
 func NewServerBelongsToGroupError(serverId, groupId string) *ServerError {

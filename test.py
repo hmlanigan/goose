@@ -44,7 +44,7 @@ def create_tarmac_repository():
         sys.stderr.write('Could not open local branch\n')
         return
     # By the time we get here, we've already branched everything from
-    # launchpad. So if we aren't in a shared repository, we create one, and
+    # github. So if we aren't in a shared repository, we create one, and
     # fetch all the data into it, so it doesn't have to be fetched again.
     if b.repository.is_shared():
         return

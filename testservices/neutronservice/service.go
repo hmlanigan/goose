@@ -265,7 +265,7 @@ func (n *Neutron) hasSecurityGroupRule(groupId, ruleId string) bool {
 
 // securityGroupRule retrieves an existing rule by ID.
 func (n *Neutron) securityGroupRule(ruleId string) (*neutron.SecurityGroupRuleV2, error) {
-	fmt.Printf("securityGroupRule(%s): called, rules = %q\n", ruleId, n.rules)
+	//fmt.Printf("securityGroupRule(%s): called, rules = %q\n", ruleId, n.rules)
 	if err := n.ProcessFunctionHook(n, ruleId); err != nil {
 		return nil, err
 	}
