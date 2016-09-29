@@ -41,6 +41,16 @@ func (s *NeutronSuite) ensureNoIP(c *gc.C, ip neutron.FloatingIPV2) {
 	c.Assert(err, gc.ErrorMatches, fmt.Sprintf("itemNotFound: No such floating IP %q", ip.Id))
 }
 
+func (s *NeutronSuite) ensureNoNetwork(c *gc.C, network neutron.NetworkV2) {
+	_, err := s.service.network(network.Id)
+	c.Assert(err, gc.ErrorMatches, fmt.Sprintf("itemNotFound: No such network %q", network.Id))
+}
+
+func (s *NeutronSuite) ensureNoSubnet(c *gc.C, subnet neutron.SubnetV2) {
+	_, err := s.service.subnet(subnet.Id)
+	c.Assert(err, gc.ErrorMatches, fmt.Sprintf("itemNotFound: No such subnet %q", subnet.Id))
+}
+
 func (s *NeutronSuite) createGroup(c *gc.C, group neutron.SecurityGroupV2) {
 	s.ensureNoGroup(c, group)
 	err := s.service.addSecurityGroup(group)
@@ -383,8 +393,6 @@ func (s *NeutronSuite) TestAllFloatingIPs(c *gc.C) {
 }
 
 func (s *NeutronSuite) TestGetFloatingIP(c *gc.C) {
-	//inst := "sr1"
-	//fixedIP := "4.3.2.1"
 	fip := neutron.FloatingIPV2{
 		Id:                "1",
 		IP:                "1.2.3.4",
@@ -409,4 +417,76 @@ func (s *NeutronSuite) TestGetFloatingIPByAddr(c *gc.C) {
 	c.Assert(*ip, gc.DeepEquals, fip)
 	_, err = s.service.floatingIPByAddr("invalid")
 	c.Assert(err, gc.ErrorMatches, `itemNotFound: No such floating IP "invalid"`)
+}
+
+func (s *NeutronSuite) TestAllNetworksV2(c *gc.C) {
+	nets := s.service.allNetworks()
+	c.Assert(nets, gc.HasLen, 0)
+	nets = []neutron.NetworkV2{
+		{Id: "75", Name: "ListNetwork75", External: true, SubnetIds: []string {}},
+		{Id: "42", Name: "ListNetwork42", External: true, SubnetIds: []string {}},
+	}
+	err := s.service.addNetwork(nets[0])
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeNetwork(nets[0].Id)
+	err = s.service.addNetwork(nets[1])
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeNetwork(nets[1].Id)
+	nets[0].TenantId = s.service.TenantId
+	nets[1].TenantId = s.service.TenantId
+	networks := s.service.allNetworks()
+	if networks[0].Id != nets[0].Id {
+		networks[0], networks[1] = networks[1], networks[0]
+	}
+	c.Assert(networks, gc.DeepEquals, nets)
+}
+
+func (s *NeutronSuite) TestGetNetworkV2(c *gc.C) {
+	network := neutron.NetworkV2{
+		Id: "75", 
+		Name: "ListNetwork75", 
+		SubnetIds: []string{"32", "86"},
+		External: true,
+		TenantId: s.service.TenantId,
+	}
+	s.ensureNoNetwork(c, network)
+	s.service.addNetwork(network)
+	defer s.service.removeNetwork(network.Id)
+	net, _ := s.service.network(network.Id)
+	c.Assert(*net, gc.DeepEquals, network)
+}
+
+func (s *NeutronSuite) TestAllSubnetsV2(c *gc.C) {
+	subs := s.service.allSubnets()
+	c.Assert(subs, gc.HasLen, 0)
+	subs = []neutron.SubnetV2{
+		{Id: "86", Name: "ListSubnet86", Cidr: "192.168.0.0/24"},
+		{Id: "92", Name: "ListSubnet92", Cidr: "192.169.0.0/24"},
+	}
+	err := s.service.addSubnet(subs[0])
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSubnet(subs[0].Id)
+	err = s.service.addSubnet(subs[1])
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSubnet(subs[1].Id)
+	subs[0].TenantId = s.service.TenantId
+	subs[1].TenantId = s.service.TenantId
+	subnets := s.service.allSubnets()
+	if subnets[0].Id != subs[0].Id {
+		subnets[0], subnets[1] = subnets[1], subnets[0]
+	}
+	c.Assert(subnets, gc.DeepEquals, subs)
+}
+
+
+func (s *NeutronSuite) TestGetSubnetV2(c *gc.C) {
+	subnet := neutron.SubnetV2{
+		Id: "82", 
+		Name: "ListSubnet82", 
+		TenantId: s.service.TenantId,
+	}
+	s.service.addSubnet(subnet)
+	defer s.service.removeSubnet(subnet.Id)
+	sub, _ := s.service.subnet(subnet.Id)
+	c.Assert(*sub, gc.DeepEquals, subnet)
 }

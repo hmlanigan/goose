@@ -106,20 +106,6 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 			panic(err)
 		}
 	}
-	// Add a sample default network
-	var netId = "1"
-	var subnetId = "1"
-	neutronService.networks[netId] = neutron.NetworkV2{
-		Id:        netId,
-		Name:      "net",
-		SubnetIds: []string{subnetId},
-	}
-	neutronService.subnets[subnetId] = neutron.SubnetV2{
-		Id:        subnetId,
-		NetworkId: netId,
-		Name:      "subnet",
-		Cidr:      "10.0.0.0/24",
-	}
 	return neutronService
 }
 
@@ -399,9 +385,39 @@ func (n *Neutron) network(networkId string) (*neutron.NetworkV2, error) {
 	}
 	network, ok := n.networks[networkId]
 	if !ok {
-		//return nil, testservices.NewNetworkIdNotFoundError(networkId)
+		return nil, testservices.NewNetworkNotFoundError(networkId)
 	}
 	return &network, nil
+}
+
+// addNetwork creates a new network.
+func (n *Neutron) addNetwork(network neutron.NetworkV2) error {
+	//fmt.Printf("addNetwork(): called\n")
+	if err := n.ProcessFunctionHook(n, network); err != nil {
+		return err
+	}
+	if _, err := n.network(network.Id); err == nil {
+		return testservices.NewNetworkAlreadyExistsError(network.Id)
+	}
+	network.TenantId = n.TenantId
+	if network.SubnetIds == nil {
+		network.SubnetIds = []string{}
+	}
+	n.networks[network.Id] = network
+	return nil
+}
+
+// removeNetwork deletes an existing group.
+func (n *Neutron) removeNetwork(netId string) error {
+	//fmt.Printf("removeNetwork(): called\n")
+	if err := n.ProcessFunctionHook(n, netId); err != nil {
+		return err
+	}
+	if _, err := n.network(netId); err != nil {
+		return err
+	}
+	delete(n.networks, netId)
+	return nil
 }
 
 // allSubnets returns a list of all existing subnets.
@@ -412,3 +428,44 @@ func (n *Neutron) allSubnets() (subnets []neutron.SubnetV2) {
 	}
 	return subnets
 }
+
+// subnet retrieves the subnet by ID.
+func (n *Neutron) subnet(subnetId string) (*neutron.SubnetV2, error) {
+	//fmt.Printf("subnets(): called\n")
+	if err := n.ProcessFunctionHook(n, subnetId); err != nil {
+		return nil, err
+	}
+	subnet, ok := n.subnets[subnetId]
+	if !ok {
+		return nil, testservices.NewSubnetNotFoundError(subnetId)
+	}
+	return &subnet, nil
+}
+
+// addSubnet creates a new subnet.
+func (n *Neutron) addSubnet(subnet neutron.SubnetV2) error {
+	//fmt.Printf("addSubnet(): called\n")
+	if err := n.ProcessFunctionHook(n, subnet); err != nil {
+		return err
+	}
+	if _, err := n.subnet(subnet.Id); err == nil {
+		return testservices.NewSubnetAlreadyExistsError(subnet.Id)
+	}
+	subnet.TenantId = n.TenantId
+	n.subnets[subnet.Id] = subnet
+	return nil
+}
+
+// removeSubnet deletes an existing subnet.
+func (n *Neutron) removeSubnet(subnetId string) error {
+	//fmt.Printf("removeNetwork(): called\n")
+	if err := n.ProcessFunctionHook(n, subnetId); err != nil {
+		return err
+	}
+	if _, err := n.subnet(subnetId); err != nil {
+		return err
+	}
+	delete(n.subnets, subnetId)
+	return nil
+}
+
