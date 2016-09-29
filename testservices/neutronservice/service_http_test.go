@@ -321,7 +321,7 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 		{
 			method: "PUT",
 			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFoundJSON,
+			expect: errNotFound,
 		},
 		{
 			method: "DELETE",
@@ -331,7 +331,7 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 		{
 			method: "DELETE",
 			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFoundJSON,
+			expect: errNotFound,
 		},
 		{
 			method: "GET",
@@ -341,7 +341,7 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 		{
 			method: "POST",
 			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFound,
+			expect: errNotFoundJSON,
 		},
 		{
 			method: "PUT",
@@ -351,7 +351,7 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 		{
 			method: "PUT",
 			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFoundJSON,
+			expect: errNotFound,
 		},
 		{
 			method: "DELETE",
@@ -361,7 +361,7 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 		{
 			method: "DELETE",
 			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFoundJSON,
+			expect: errNotFound,
 		},
 */
 	}
@@ -662,6 +662,55 @@ func (s *NeutronHTTPSuite) TestDeleteFloatingIP(c *gc.C) {
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusNoContent)
 	_, err = s.service.floatingIP(fip.Id)
 	c.Assert(err, gc.NotNil)
+}
+
+func (s *NeutronHTTPSuite) TestGetNetworks(c *gc.C) {
+	// There are always 2 networks
+	networks := s.service.allNetworks()
+	c.Assert(networks, gc.HasLen, 2)
+	var expected struct {
+		Networks []neutron.NetworkV2 `json:"networks"`
+	}
+	resp, err := s.authRequest("GET", neutron.ApiNetworksV2, nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Networks, gc.HasLen, len(networks))
+	//fmt.Printf("TestGetNetworks(): expected.Networks = %q\n", expected.Networks)
+	var expectedNetwork struct {
+		Network neutron.NetworkV2 `json:"network"`
+	}
+	url := fmt.Sprintf("%s/%s", neutron.ApiNetworksV2, networks[0].Id)
+	resp, err = s.authRequest("GET", url, nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expectedNetwork)
+	//fmt.Printf("TestGetNetworks(): expectedNetwork.Network = %q\n", expectedNetwork.Network)
+	//fmt.Printf("TestGetNetworks(): networks = %q\n", networks)
+	c.Assert(expectedNetwork.Network, gc.DeepEquals, networks[0])
+}
+
+func (s *NeutronHTTPSuite) TestGetSubnets(c *gc.C) {
+	// There are always 2 subnets
+	subnets := s.service.allSubnets()
+	c.Assert(subnets, gc.HasLen, 2)
+	var expected struct {
+		Subnets []neutron.SubnetV2 `json:"subnets"`
+	}
+	resp, err := s.authRequest("GET", neutron.ApiSubnetsV2, nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Subnets, gc.HasLen, 2)
+	var expectedSubnet struct {
+		Subnet neutron.SubnetV2 `json:"subnet"`
+	}
+	url := fmt.Sprintf("%s/%s", neutron.ApiSubnetsV2, subnets[0].Id)
+	resp, err = s.authRequest("GET", url, nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expectedSubnet)
+	c.Assert(expectedSubnet.Subnet, gc.DeepEquals, subnets[0])
 }
 
 func (s *NeutronHTTPSSuite) SetUpSuite(c *gc.C) {

@@ -420,25 +420,29 @@ func (s *NeutronSuite) TestGetFloatingIPByAddr(c *gc.C) {
 }
 
 func (s *NeutronSuite) TestAllNetworksV2(c *gc.C) {
-	nets := s.service.allNetworks()
-	c.Assert(nets, gc.HasLen, 0)
-	nets = []neutron.NetworkV2{
+	networks := s.service.allNetworks()
+	newNets := []neutron.NetworkV2{
 		{Id: "75", Name: "ListNetwork75", External: true, SubnetIds: []string {}},
 		{Id: "42", Name: "ListNetwork42", External: true, SubnetIds: []string {}},
 	}
-	err := s.service.addNetwork(nets[0])
+	err := s.service.addNetwork(newNets[0])
 	c.Assert(err, gc.IsNil)
-	defer s.service.removeNetwork(nets[0].Id)
-	err = s.service.addNetwork(nets[1])
+	defer s.service.removeNetwork(newNets[0].Id)
+	err = s.service.addNetwork(newNets[1])
 	c.Assert(err, gc.IsNil)
-	defer s.service.removeNetwork(nets[1].Id)
-	nets[0].TenantId = s.service.TenantId
-	nets[1].TenantId = s.service.TenantId
-	networks := s.service.allNetworks()
-	if networks[0].Id != nets[0].Id {
-		networks[0], networks[1] = networks[1], networks[0]
+	defer s.service.removeNetwork(newNets[1].Id)
+	newNets[0].TenantId = s.service.TenantId
+	newNets[1].TenantId = s.service.TenantId
+	networks = append(networks, newNets...)
+	foundNetworks := s.service.allNetworks()
+	c.Assert(foundNetworks, gc.HasLen, len(networks))
+	for _, net := range networks {
+		for _, newNet := range foundNetworks {
+			if net.Id == newNet.Id {
+				c.Assert(net, gc.DeepEquals, newNet)
+			}
+		}
 	}
-	c.Assert(networks, gc.DeepEquals, nets)
 }
 
 func (s *NeutronSuite) TestGetNetworkV2(c *gc.C) {
@@ -457,25 +461,29 @@ func (s *NeutronSuite) TestGetNetworkV2(c *gc.C) {
 }
 
 func (s *NeutronSuite) TestAllSubnetsV2(c *gc.C) {
-	subs := s.service.allSubnets()
-	c.Assert(subs, gc.HasLen, 0)
-	subs = []neutron.SubnetV2{
+	subnets := s.service.allSubnets()
+	newSubs := []neutron.SubnetV2{
 		{Id: "86", Name: "ListSubnet86", Cidr: "192.168.0.0/24"},
 		{Id: "92", Name: "ListSubnet92", Cidr: "192.169.0.0/24"},
 	}
-	err := s.service.addSubnet(subs[0])
+	err := s.service.addSubnet(newSubs[0])
 	c.Assert(err, gc.IsNil)
-	defer s.service.removeSubnet(subs[0].Id)
-	err = s.service.addSubnet(subs[1])
+	defer s.service.removeSubnet(newSubs[0].Id)
+	err = s.service.addSubnet(newSubs[1])
 	c.Assert(err, gc.IsNil)
-	defer s.service.removeSubnet(subs[1].Id)
-	subs[0].TenantId = s.service.TenantId
-	subs[1].TenantId = s.service.TenantId
-	subnets := s.service.allSubnets()
-	if subnets[0].Id != subs[0].Id {
-		subnets[0], subnets[1] = subnets[1], subnets[0]
+	defer s.service.removeSubnet(newSubs[1].Id)
+	newSubs[0].TenantId = s.service.TenantId
+	newSubs[1].TenantId = s.service.TenantId
+	subnets = append(subnets, newSubs...)
+	foundSubnets := s.service.allSubnets()
+	c.Assert(foundSubnets, gc.HasLen, len(subnets))
+	for _, sub := range subnets {
+		for _, newSub := range foundSubnets {
+			if sub.Id == newSub.Id {
+				c.Assert(sub, gc.DeepEquals, newSub)
+			}
+		}
 	}
-	c.Assert(subnets, gc.DeepEquals, subs)
 }
 
 

@@ -257,7 +257,7 @@ func userInfo(i identityservice.IdentityService, r *http.Request) (*identityserv
 
 func (h *neutronHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	fmt.Printf("\nServeHTTP(): request = %q\n\n", r)
+	//fmt.Printf("\nServeHTTP(): request = %q\n\n", r)
 	// handle invalid X-Auth-Token header
 	_, err := userInfo(h.n.IdentityService, r)
 	if err != nil {
@@ -656,8 +656,9 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 				return errNotFoundJSON
 			}
 			resp := struct {
-				Network neutron.NetworkV2 `json:"networks"`
+				Network neutron.NetworkV2 `json:"network"`
 			}{*network}
+		fmt.Printf("handleNetworks(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		nets := n.allNetworks()
@@ -667,8 +668,10 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 		resp := struct {
 			Network []neutron.NetworkV2 `json:"networks"`
 		}{nets}
+		fmt.Printf("handleNetworks(): %q\n", resp)
 		return sendJSON(http.StatusOK, resp, w, r)
-		// TODO(gz): proper handling of other methods
+	default:
+		return errNotFound
 	}
 	return fmt.Errorf("unknown request method %q for %s", r.Method, r.URL.Path)
 }
@@ -677,19 +680,30 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		if ipId := path.Base(r.URL.Path); ipId != neutron.ApiSubnetsV2 {
-			// TODO(gz): handle listing a single group
-			return errNotFoundJSON
+		subnetId := path.Base(r.URL.Path)
+		apiFunc := path.Base(neutron.ApiSubnetsV2)
+		if subnetId != apiFunc {
+			subnet, err := n.subnet(subnetId)
+			if err != nil {
+				return errNotFoundJSON
+			}
+			resp := struct {
+				Subnet neutron.SubnetV2 `json:"subnet"`
+			}{*subnet}
+		fmt.Printf("handleSubnets(): %q\n", resp)
+			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		subnets := n.allSubnets()
 		if len(subnets) == 0 {
 			subnets = []neutron.SubnetV2{}
 		}
 		resp := struct {
-			Subnet []neutron.SubnetV2 `json:"subnets"`
+			Subnets []neutron.SubnetV2 `json:"subnets"`
 		}{subnets}
+		fmt.Printf("handleSubnets(): %q\n", resp)
 		return sendJSON(http.StatusOK, resp, w, r)
-		// TODO(gz): proper handling of other methods
+	default:
+		return errNotFound
 	}
 	return fmt.Errorf("unknown request method %q for %s", r.Method, r.URL.Path)
 }

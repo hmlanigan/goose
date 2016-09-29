@@ -81,6 +81,15 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 	defaultSecurityGroups := []neutron.SecurityGroupV2{
 		{Id: "999", Name: "default", Description: "default group"},
 	}
+	// There are no create/delete network/subnet commands, so make a few default
+	defaultNetworks := []neutron.NetworkV2{
+		{Id: "999", Name: "private", SubnetIds: []string{"999-01"}, External: false},
+		{Id: "998", Name: "public", SubnetIds: []string{"998-01"}, External: true},
+	}
+	defaultSubnets := []neutron.SubnetV2{
+		{Id: "999-01", NetworkId: "999"},
+		{Id: "998-01", NetworkId: "998"},
+	}
 	neutronService := &Neutron{
 		groups:      make(map[string]neutron.SecurityGroupV2),
 		rules:       make(map[string]neutron.SecurityGroupRuleV2),
@@ -102,6 +111,18 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 	}
 	for _, group := range defaultSecurityGroups {
 		err := neutronService.addSecurityGroup(group)
+		if err != nil {
+			panic(err)
+		}
+	}
+	for _, net := range defaultNetworks {
+		err := neutronService.addNetwork(net)
+		if err != nil {
+			panic(err)
+		}
+	}
+	for _, subnet := range defaultSubnets {
+		err := neutronService.addSubnet(subnet)
 		if err != nil {
 			panic(err)
 		}

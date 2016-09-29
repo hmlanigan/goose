@@ -159,3 +159,20 @@ func NewNoFloatingIPsToRemoveError(serverId string) *ServerError {
 func NewNoFloatingIPsError(serverId, ipId string) *ServerError {
 	return serverErrorf(404, "Server %q does not have floating IP %s", serverId, ipId)
 }
+
+func NewNetworkNotFoundError(network string) *ServerError {
+	return serverErrorf(404, "No such network %q", network)
+}
+
+func NewNetworkAlreadyExistsError(id string) *ServerError {
+	return serverErrorf(409, "A network with id %q already exists", id)
+}
+
+func NewSubnetNotFoundError(subnet string) *ServerError {
+	return serverErrorf(404, "No such subnet %q", subnet)
+}
+
+func NewSubnetAlreadyExistsError(id string) *ServerError {
+	return serverErrorf(409, "A subnet with id %q already exists", id)
+}
+
