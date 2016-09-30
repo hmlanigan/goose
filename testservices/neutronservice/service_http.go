@@ -712,6 +712,11 @@ func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
 	// /$v/security-groups/ matches /v2.0/security-groups/{security-group-id}
 	// /$v/security-groups matches /v2.0/security-groups
+	mux.Handle("/v2.0/security-groups/", n.handler((*Neutron).handleSecurityGroups))
+	mux.Handle("/v2.0/security-group-rules/", n.handler((*Neutron).handleSecurityGroupRules))
+	mux.Handle("/v2.0/floatingips/", n.handler((*Neutron).handleFloatingIPs))
+	mux.Handle("/v2.0/networks/", n.handler((*Neutron).handleNetworks))
+/*
 	handlers := map[string]http.Handler{
 		// "/":			n.handler((*Neutron).handleApiVersions,
 		// "/v2.0":			n.handler((*Neutron).handleApiVersions,
@@ -732,4 +737,5 @@ func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
 		fmt.Printf("SetupHTTP(): mux.Handle(%s, %s)\n", path, h)
 		mux.Handle(path, h)
 	}
+*/
 }
