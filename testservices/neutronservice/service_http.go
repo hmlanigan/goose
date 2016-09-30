@@ -715,7 +715,7 @@ func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
 	handlers := map[string]http.Handler{
 		// "/":			n.handler((*Neutron).handleApiVersions,
 		// "/v2.0":			n.handler((*Neutron).handleApiVersions,
-		"/v2.0/":	errBadRequest,
+		// "/v2.0/":	errBadRequest,
 		"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
 		"/v2.0/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
 		"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
