@@ -716,19 +716,20 @@ func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
 		// "/":			n.handler((*Neutron).handleApiVersions,
 		// "/v2.0":			n.handler((*Neutron).handleApiVersions,
 		// "/v2.0/":	errBadRequest,
-		"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
+		//"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
 		"/v2.0/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
-		"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
+		//"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
 		"/v2.0/security-group-rules/": n.handler((*Neutron).handleSecurityGroupRules),
-		"/v2.0/floatingips":           n.handler((*Neutron).handleFloatingIPs),
+		//"/v2.0/floatingips":           n.handler((*Neutron).handleFloatingIPs),
 		"/v2.0/floatingips/":          n.handler((*Neutron).handleFloatingIPs),
-		"/v2.0/networks":              n.handler((*Neutron).handleNetworks),
+		//"/v2.0/networks":              n.handler((*Neutron).handleNetworks),
 		"/v2.0/networks/":             n.handler((*Neutron).handleNetworks),
-		"/v2.0/subnets":               n.handler((*Neutron).handleSubnets),
+		//"/v2.0/subnets":               n.handler((*Neutron).handleSubnets),
 		"/v2.0/subnets/":              n.handler((*Neutron).handleSubnets),
 	}
 	for path, h := range handlers {
 		//path = strings.Replace(path, "$v", n.VersionPath, 1)
+		fmt.Printf("SetupHTTP(): mux.Handle(%s, %s)\n", path, h)
 		mux.Handle(path, h)
 	}
 }
