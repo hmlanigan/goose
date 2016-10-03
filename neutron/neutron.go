@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	ApiFloatingIPsV2        = "v2.0/floatingips"
-	ApiNetworksV2           = "v2.0/networks"
-	ApiSubnetsV2            = "v2.0/subnets"
-	ApiSecurityGroupsV2     = "v2.0/security-groups"
-	ApiSecurityGroupRulesV2 = "v2.0/security-group-rules"
+	ApiFloatingIPsV2        = "/floatingips"
+	ApiNetworksV2           = "/networks"
+	ApiSubnetsV2            = "/subnets"
+	ApiSecurityGroupsV2     = "/security-groups"
+	ApiSecurityGroupRulesV2 = "/security-group-rules"
 )
 
 // NetworkV2 contains details about a labeled network
@@ -56,7 +56,7 @@ func (c *Client) ListNetworksV2() ([]NetworkV2, error) {
 		Networks []NetworkV2 `json:"networks"`
 	}
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", ApiNetworksV2, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", ApiNetworksV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get list of networks")
 	}
@@ -70,7 +70,7 @@ func (c *Client) GetNetworkV2(netID string) (*NetworkV2, error) {
 	}
 	url := fmt.Sprintf("%s/%s", ApiNetworksV2, netID)
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", url, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", url, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get network detail")
 	}
@@ -83,7 +83,7 @@ func (c *Client) ListSubnetsV2() ([]SubnetV2, error) {
 		Subnets []SubnetV2 `json:"subnets"`
 	}
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", ApiSubnetsV2, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", ApiSubnetsV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get list of subnets")
 	}
@@ -97,7 +97,7 @@ func (c *Client) GetSubnetV2(subnetID string) (*SubnetV2, error) {
 	}
 	url := fmt.Sprintf("%s/%s", ApiSubnetsV2, subnetID)
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", url, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", url, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get subnet detail")
 	}
@@ -120,7 +120,7 @@ func (c *Client) ListFloatingIPsV2() ([]FloatingIPV2, error) {
 	}
 
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", ApiFloatingIPsV2, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", ApiFloatingIPsV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to list floating ips")
 	}
@@ -135,7 +135,7 @@ func (c *Client) GetFloatingIPV2(ipId string) (*FloatingIPV2, error) {
 
 	url := fmt.Sprintf("%s/%s", ApiFloatingIPsV2, ipId)
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", url, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", url, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get floating ip %s details", ipId)
 	}
@@ -158,7 +158,7 @@ func (c *Client) AllocateFloatingIPV2(floatingNetworkId string) (*FloatingIPV2, 
 		RespValue:      &resp,
 		ExpectedStatus: []int{http.StatusCreated},
 	}
-	err := c.client.SendRequest(client.POST, "network", ApiFloatingIPsV2, &requestData)
+	err := c.client.SendRequest(client.POST, "network", "v2.0", ApiFloatingIPsV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to allocate a floating ip")
 	}
@@ -169,7 +169,7 @@ func (c *Client) AllocateFloatingIPV2(floatingNetworkId string) (*FloatingIPV2, 
 func (c *Client) DeleteFloatingIPV2(ipId string) error {
 	url := fmt.Sprintf("%s/%s", ApiFloatingIPsV2, ipId)
 	requestData := goosehttp.RequestData{ExpectedStatus: []int{http.StatusNoContent}}
-	err := c.client.SendRequest(client.DELETE, "network", url, &requestData)
+	err := c.client.SendRequest(client.DELETE, "network", "v2.0", url, &requestData)
 	if err != nil {
 		err = errors.Newf(err, "failed to delete floating ip %s details", ipId)
 	}
@@ -206,7 +206,7 @@ func (c *Client) ListSecurityGroupsV2() ([]SecurityGroupV2, error) {
 		Groups []SecurityGroupV2 `json:"security_groups"`
 	}
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", ApiSecurityGroupsV2, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", ApiSecurityGroupsV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to list security groups")
 	}
@@ -223,7 +223,7 @@ func (c *Client) SecurityGroupByNameV2(name string) ([]SecurityGroupV2, error) {
 	}
 	url := fmt.Sprintf("%s?name=%s", ApiSecurityGroupsV2, name)
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "network", url, &requestData)
+	err := c.client.SendRequest(client.GET, "network", "v2.0", url, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get security group with name: %s", name)
 	}
@@ -249,7 +249,7 @@ func (c *Client) CreateSecurityGroupV2(name, description string) (*SecurityGroup
 		RespValue:      &resp,
 		ExpectedStatus: []int{http.StatusCreated},
 	}
-	err := c.client.SendRequest(client.POST, "network", ApiSecurityGroupsV2, &requestData)
+	err := c.client.SendRequest(client.POST, "network", "v2.0", ApiSecurityGroupsV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to create a security group with name: %s", name)
 	}
@@ -260,7 +260,7 @@ func (c *Client) CreateSecurityGroupV2(name, description string) (*SecurityGroup
 func (c *Client) DeleteSecurityGroupV2(groupId string) error {
 	url := fmt.Sprintf("%s/%s", ApiSecurityGroupsV2, groupId)
 	requestData := goosehttp.RequestData{ExpectedStatus: []int{http.StatusNoContent}}
-	err := c.client.SendRequest(client.DELETE, "network", url, &requestData)
+	err := c.client.SendRequest(client.DELETE, "network", "v2.0", url, &requestData)
 	if err != nil {
 		err = errors.Newf(err, "failed to delete security group with id: %s", groupId)
 	}
@@ -282,7 +282,7 @@ func (c *Client) UpdateSecurityGroupV2(groupId, name, description string) (*Secu
 	}
 	url := fmt.Sprintf("%s/%s", ApiSecurityGroupsV2, groupId)
 	requestData := goosehttp.RequestData{ReqValue: req, RespValue: &resp, ExpectedStatus: []int{http.StatusOK}}
-	err := c.client.SendRequest(client.PUT, "network", url, &requestData)
+	err := c.client.SendRequest(client.PUT, "network", "v2.0", url, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to update security group with Id %s to name: %s", groupId, name)
 	}
@@ -353,7 +353,7 @@ func (c *Client) CreateSecurityGroupRuleV2(ruleInfo RuleInfoV2) (*SecurityGroupR
 	}
 
 	requestData := goosehttp.RequestData{ReqValue: req, RespValue: &resp, ExpectedStatus: []int{http.StatusCreated}}
-	err := c.client.SendRequest(client.POST, "network", ApiSecurityGroupRulesV2, &requestData)
+	err := c.client.SendRequest(client.POST, "network", "v2.0", ApiSecurityGroupRulesV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to create a rule for the security group with id: %v", ruleInfo.ParentGroupId)
 	}
@@ -364,7 +364,7 @@ func (c *Client) CreateSecurityGroupRuleV2(ruleInfo RuleInfoV2) (*SecurityGroupR
 func (c *Client) DeleteSecurityGroupRuleV2(ruleId string) error {
 	url := fmt.Sprintf("%s/%s", ApiSecurityGroupRulesV2, ruleId)
 	requestData := goosehttp.RequestData{ExpectedStatus: []int{http.StatusNoContent}}
-	err := c.client.SendRequest(client.DELETE, "network", url, &requestData)
+	err := c.client.SendRequest(client.DELETE, "network", "v2.0", url, &requestData)
 	if err != nil {
 		err = errors.Newf(err, "failed to delete security group rule with id: %s", ruleId)
 	}
