@@ -170,13 +170,13 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			headers: setHeader(authToken, s.token),
 			expect:  errMultipleChoices,
 		},
-/*
-		{
-			method: "POST",
-			url:    "/any/unknown/one",
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "POST",
+				url:    "/any/unknown/one",
+				expect: errNotFound,
+			},
+		*/
 		{
 			unauth:  true,
 			method:  "GET",
@@ -194,25 +194,25 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiSecurityGroupsV2,
 			expect: errBadRequest2,
 		},
-/*
-		{
-			method: "POST",
-			url:    neutron.ApiSecurityGroupsV2 + "/invalid",
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "POST",
+				url:    neutron.ApiSecurityGroupsV2 + "/invalid",
+				expect: errNotFound,
+			},
+		*/
 		{
 			method: "PUT",
 			url:    neutron.ApiSecurityGroupsV2,
 			expect: errNotFound,
 		},
-/*
-		{
-			method: "PUT",
-			url:    neutron.ApiSecurityGroupsV2 + "/invalid",
-			expect: errNotFoundJSONSG,
-		},
-*/
+		/*
+			{
+				method: "PUT",
+				url:    neutron.ApiSecurityGroupsV2 + "/invalid",
+				expect: errNotFoundJSONSG,
+			},
+		*/
 		{
 			method: "DELETE",
 			url:    neutron.ApiSecurityGroupsV2,
@@ -248,13 +248,13 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
 			expect: errNotFound,
 		},
-/*
-		{
-			method: "PUT",
-			url:    neutron.ApiSecurityGroupRulesV2,
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "PUT",
+				url:    neutron.ApiSecurityGroupRulesV2,
+				expect: errNotFound,
+			},
+		*/
 		{
 			method: "PUT",
 			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
@@ -280,13 +280,13 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiFloatingIPsV2 + "/invalid",
 			expect: errNotFound,
 		},
-/*
-		{
-			method: "PUT",
-			url:    neutron.ApiFloatingIPsV2,
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "PUT",
+				url:    neutron.ApiFloatingIPsV2,
+				expect: errNotFound,
+			},
+		*/
 		{
 			method: "PUT",
 			url:    neutron.ApiFloatingIPsV2 + "/invalid",
@@ -302,68 +302,68 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiFloatingIPsV2 + "/invalid",
 			expect: errNotFoundJSON,
 		},
-/*
-		{
-			method: "GET",
-			url:    neutron.ApiNetworksV2 + "/42",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "POST",
-			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiNetworksV2,
-			expect: errNotFound,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiNetworksV2,
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "GET",
-			url:    neutron.ApiSubnetsV2 + "/42",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "POST",
-			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiSubnetsV2,
-			expect: errNotFound,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiSubnetsV2,
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "GET",
+				url:    neutron.ApiNetworksV2 + "/42",
+				expect: errNotFoundJSON,
+			},
+			{
+				method: "POST",
+				url:    neutron.ApiNetworksV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiNetworksV2,
+				expect: errNotFound,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiNetworksV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiNetworksV2,
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiNetworksV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "GET",
+				url:    neutron.ApiSubnetsV2 + "/42",
+				expect: errNotFoundJSON,
+			},
+			{
+				method: "POST",
+				url:    neutron.ApiSubnetsV2 + "/invalid",
+				expect: errNotFoundJSON,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiSubnetsV2,
+				expect: errNotFound,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiSubnetsV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiSubnetsV2,
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiSubnetsV2 + "/invalid",
+				expect: errNotFound,
+			},
+		*/
 	}
 	return simpleTests
 }

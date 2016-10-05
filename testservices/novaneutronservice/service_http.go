@@ -30,7 +30,7 @@ type errorResponse struct {
 	contentType string
 	errorText   string
 	headers     map[string]string
-	novaNeutron        *NovaNeutron
+	novaNeutron *NovaNeutron
 }
 
 // verbatim real Nova responses (as errors).
@@ -284,6 +284,7 @@ func userInfo(i identityservice.IdentityService, r *http.Request) (*identityserv
 
 func (h *novaNeutronHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
+	fmt.Printf("ServeHTTP(): %s\n", path)
 	// handle invalid X-Auth-Token header
 	_, err := userInfo(h.n.IdentityService, r)
 	if err != nil {
@@ -346,6 +347,7 @@ func (n *NovaNeutron) handler(method func(n *NovaNeutron, w http.ResponseWriter,
 }
 
 func (n *NovaNeutron) handleRoot(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handler(%q)\n", r.URL)
 	if r.URL.Path == "/" {
 		return errNoVersion
 	}
@@ -358,6 +360,7 @@ func (n *NovaNeutron) HandleRoot(w http.ResponseWriter, r *http.Request) {
 
 // handleFlavors handles the flavors HTTP API.
 func (n *NovaNeutron) handleFlavors(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleFlavors(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		if flavorId := path.Base(r.URL.Path); flavorId != "flavors" {
@@ -406,6 +409,7 @@ func (n *NovaNeutron) handleFlavors(w http.ResponseWriter, r *http.Request) erro
 
 // handleFlavorsDetail handles the flavors/detail HTTP API.
 func (n *NovaNeutron) handleFlavorsDetail(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleFlavorsDetail(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		if flavorId := path.Base(r.URL.Path); flavorId != "detail" {
@@ -437,6 +441,7 @@ func (n *NovaNeutron) handleFlavorsDetail(w http.ResponseWriter, r *http.Request
 
 // handleServerActions handles the servers/<id>/action HTTP API.
 func (n *NovaNeutron) handleServerActions(server *nova.ServerDetail, w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleServerActions(%s, %s)\n", r.Method, r.URL)
 	if server == nil {
 		return errNotFound
 	}
@@ -518,6 +523,7 @@ func (n *NovaNeutron) handleServerActions(server *nova.ServerDetail, w http.Resp
 
 // handleServerMetadata handles the servers/<id>/action HTTP API.
 func (n *NovaNeutron) handleServerMetadata(server *nova.ServerDetail, w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleServerMetadata(%s, %s)\n", r.Method, r.URL)
 	if server == nil {
 		return errNotFound
 	}
@@ -563,6 +569,7 @@ func noGroupError(groupName, tenantId string) error {
 
 // handleRunServer handles creating and running a server.
 func (n *NovaNeutron) handleRunServer(body []byte, w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleRunServer(%s, %s)\n", r.Method, r.URL)
 	var req struct {
 		Server struct {
 			FlavorRef        string
@@ -680,6 +687,7 @@ func (n *NovaNeutron) handleRunServer(body []byte, w http.ResponseWriter, r *htt
 
 // handleServers handles the servers HTTP API.
 func (n *NovaNeutron) handleServers(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleServers(%s, %s)\n", r.Method, r.URL)
 
 	if strings.Contains(r.URL.Path, "os-volume_attachments") {
 		switch r.Method {
@@ -821,6 +829,7 @@ func (n *NovaNeutron) handleServers(w http.ResponseWriter, r *http.Request) erro
 
 // handleServersDetail handles the servers/detail HTTP API.
 func (n *NovaNeutron) handleServersDetail(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleServersDetail(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		if serverId := path.Base(r.URL.Path); serverId != "detail" {
@@ -863,6 +872,7 @@ func (n *NovaNeutron) handleServersDetail(w http.ResponseWriter, r *http.Request
 
 // handleAvailabilityZones handles the os-availability-zone HTTP API.
 func (n *NovaNeutron) handleAvailabilityZones(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleAvailabilityZones(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		if ipId := path.Base(r.URL.Path); ipId != "os-availability-zone" {
@@ -883,6 +893,7 @@ func (n *NovaNeutron) handleAvailabilityZones(w http.ResponseWriter, r *http.Req
 }
 
 func (n *NovaNeutron) handleAttachVolumes(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleAttachVolumes(%s, %s)\n", r.Method, r.URL)
 	serverId := path.Base(strings.Replace(r.URL.Path, "/os-volume_attachments", "", 1))
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -913,6 +924,7 @@ func (n *NovaNeutron) handleAttachVolumes(w http.ResponseWriter, r *http.Request
 }
 
 func (n *NovaNeutron) handleDetachVolumes(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleDetachVolumes(%s, %s)\n", r.Method, r.URL)
 	attachId := path.Base(r.URL.Path)
 	serverId := path.Base(strings.Replace(r.URL.Path, "/os-volume_attachments/"+attachId, "", 1))
 	serverVols := n.serverIdToAttachedVolumes[serverId]
@@ -930,6 +942,7 @@ func (n *NovaNeutron) handleDetachVolumes(w http.ResponseWriter, r *http.Request
 }
 
 func (n *NovaNeutron) handleListVolumes(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleListVolumes(%s, %s)\n", r.Method, r.URL)
 	serverId := path.Base(strings.Replace(r.URL.Path, "/os-volume_attachments", "", 1))
 	serverVols := n.serverIdToAttachedVolumes[serverId]
 
@@ -947,13 +960,13 @@ func (n *NovaNeutron) handleListVolumes(w http.ResponseWriter, r *http.Request) 
 // SetupHTTP attaches all the needed handlers to provide the HTTP API.
 func (n *NovaNeutron) SetupHTTP(mux *http.ServeMux) {
 	handlers := map[string]http.Handler{
-		"/$v/":                           errBadRequest,
-		"/$v/$t/":                        errNotFound,
-		"/$v/$t/flavors":                 n.handler((*NovaNeutron).handleFlavors),
-		"/$v/$t/flavors/detail":          n.handler((*NovaNeutron).handleFlavorsDetail),
-		"/$v/$t/servers":                 n.handler((*NovaNeutron).handleServers),
-		"/$v/$t/servers/detail":          n.handler((*NovaNeutron).handleServersDetail),
-		"/$v/$t/os-availability-zone":    n.handler((*NovaNeutron).handleAvailabilityZones),
+		"/$v/":                        errBadRequest,
+		"/$v/$t/":                     errNotFound,
+		"/$v/$t/flavors":              n.handler((*NovaNeutron).handleFlavors),
+		"/$v/$t/flavors/detail":       n.handler((*NovaNeutron).handleFlavorsDetail),
+		"/$v/$t/servers":              n.handler((*NovaNeutron).handleServers),
+		"/$v/$t/servers/detail":       n.handler((*NovaNeutron).handleServersDetail),
+		"/$v/$t/os-availability-zone": n.handler((*NovaNeutron).handleAvailabilityZones),
 	}
 	for path, h := range handlers {
 		path = strings.Replace(path, "$v", n.VersionPath, 1)
@@ -1001,6 +1014,7 @@ func (n *NovaNeutron) processGroupId(w http.ResponseWriter, r *http.Request) (*n
 func (n *NovaNeutron) handleSecurityGroups(w http.ResponseWriter, r *http.Request) error {
 	//fmt.Printf("handleSecurityGroups(): r.Method = %s\n", r.Method)
 	//fmt.Printf("handleSecurityGroups(): r.URL = %s\n", r.URL)
+	fmt.Printf("handleSecurityGroups(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		group, err := n.processGroupId(w, r)
@@ -1122,6 +1136,7 @@ func (n *NovaNeutron) handleSecurityGroups(w http.ResponseWriter, r *http.Reques
 
 // handleSecurityGroupRules handles the /v2.0/security-group-rules HTTP API.
 func (n *NovaNeutron) handleSecurityGroupRules(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleSecurityGroupRules(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		return errNotFoundJSON
@@ -1223,6 +1238,7 @@ func (n *NovaNeutron) handleSecurityGroupRules(w http.ResponseWriter, r *http.Re
 
 // handleFloatingIPs handles the v2/floatingips HTTP API.
 func (n *NovaNeutron) handleFloatingIPs(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleFloatingIPs(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		ipId := path.Base(r.URL.Path)
@@ -1285,6 +1301,7 @@ func (n *NovaNeutron) handleFloatingIPs(w http.ResponseWriter, r *http.Request) 
 
 // handleNetworks handles the v2/networks HTTP API.
 func (n *NovaNeutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleNetworks(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		networkId := path.Base(r.URL.Path)
@@ -1297,7 +1314,7 @@ func (n *NovaNeutron) handleNetworks(w http.ResponseWriter, r *http.Request) err
 			resp := struct {
 				Network neutron.NetworkV2 `json:"network"`
 			}{*network}
-		fmt.Printf("handleNetworks(): %q\n", resp)
+			fmt.Printf("handleNetworks(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		nets := n.allNetworks()
@@ -1317,6 +1334,7 @@ func (n *NovaNeutron) handleNetworks(w http.ResponseWriter, r *http.Request) err
 
 // handleNetworks handles the v2/subnets HTTP API.
 func (n *NovaNeutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("handleSubnets(%s, %s)\n", r.Method, r.URL)
 	switch r.Method {
 	case "GET":
 		subnetId := path.Base(r.URL.Path)
@@ -1329,7 +1347,7 @@ func (n *NovaNeutron) handleSubnets(w http.ResponseWriter, r *http.Request) erro
 			resp := struct {
 				Subnet neutron.SubnetV2 `json:"subnet"`
 			}{*subnet}
-		fmt.Printf("handleSubnets(): %q\n", resp)
+			fmt.Printf("handleSubnets(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		subnets := n.allSubnets()

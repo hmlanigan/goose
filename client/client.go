@@ -147,6 +147,7 @@ func NewNonValidatingClient(creds *identity.Credentials, auth_method identity.Au
 }
 
 func (c *client) sendRequest(method, url, token string, requestData *goosehttp.RequestData) (err error) {
+	//fmt.Print("sendRequest(): %s\n", url)
 	if requestData.ReqValue != nil || requestData.RespValue != nil {
 		err = c.httpClient.JsonRequest(method, url, token, requestData, c.logger)
 	} else {
@@ -157,6 +158,7 @@ func (c *client) sendRequest(method, url, token string, requestData *goosehttp.R
 
 func (c *client) SendRequest(method, svcType, apiVersion, apiCall string, requestData *goosehttp.RequestData) error {
 	url, _ := c.MakeServiceURL(svcType, apiVersion, []string{apiCall})
+	//fmt.Print("SendRequest(): %s\n", url)
 	return c.sendRequest(method, url, "", requestData)
 }
 
@@ -164,6 +166,7 @@ func makeURL(base string, parts []string) string {
 	if !strings.HasSuffix(base, "/") && len(parts) > 0 {
 		base += "/"
 	}
+	//fmt.Printf("makeURL(): returning %s\n", base + strings.Join(parts, "/"))
 	return base + strings.Join(parts, "/")
 }
 
@@ -179,6 +182,7 @@ func (c *authenticatingClient) SendRequest(
 	method, svcType, apiVersion, apiCall string,
 	requestData *goosehttp.RequestData,
 ) (err error) {
+	//fmt.Printf("SendRequest(%s, %s, %s, %s, data): called\n", method, svcType, apiVersion, apiCall)
 	err = c.sendAuthRequest(method, svcType, apiVersion, apiCall, requestData)
 	if gooseerrors.IsUnauthorised(err) {
 		c.setToken("")
@@ -191,11 +195,13 @@ func (c *authenticatingClient) sendAuthRequest(
 	method, svcType, apiVersion, apiCall string,
 	requestData *goosehttp.RequestData,
 ) (err error) {
+	//fmt.Printf("sendAuthRequest(%s, %s, %s, %s, data): called\n", method, svcType, apiVersion, apiCall)
 	if err = c.Authenticate(); err != nil {
 		return
 	}
 
 	url, err := c.MakeServiceURL(svcType, apiVersion, []string{apiCall})
+	//fmt.Printf("authenticatingClient(): url = %s\n", url)
 	if err != nil {
 		return
 	}
@@ -212,7 +218,9 @@ func (c *authenticatingClient) MakeServiceURL(serviceType, apiVersion string, pa
 	}
 	if serviceType == "object-store" {
 		// object-store has no versioning capability.
-		return serviceURL, nil
+		//fmt.Printf("MakeServiceURL(): returning \"object-store\" url = %s\n", serviceURL)
+		return makeURL(serviceURL, parts), nil
+		//return serviceURL, nil
 	}
 	requestedVersion, err := parseVersion(apiVersion)
 	if err != nil {
@@ -609,6 +617,7 @@ func (c *authenticatingClient) IdentityAuthOptions() (identity.AuthOptions, erro
 		authInfoPath, _ := url.Parse("/")
 		baseURL = parsedURL.ResolveReference(authInfoPath).String()
 	}
+	fmt.Printf("IdentityAuthOptions(): url is %s\n", baseURL)
 	authOptions, err := identity.FetchAuthOptions(baseURL, c.httpClient, c.logger)
 	if err != nil {
 		return identity.AuthOptions{}, gooseerrors.Newf(err, "auth options fetching failed")

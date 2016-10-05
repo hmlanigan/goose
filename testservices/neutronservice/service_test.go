@@ -422,8 +422,8 @@ func (s *NeutronSuite) TestGetFloatingIPByAddr(c *gc.C) {
 func (s *NeutronSuite) TestAllNetworksV2(c *gc.C) {
 	networks := s.service.allNetworks()
 	newNets := []neutron.NetworkV2{
-		{Id: "75", Name: "ListNetwork75", External: true, SubnetIds: []string {}},
-		{Id: "42", Name: "ListNetwork42", External: true, SubnetIds: []string {}},
+		{Id: "75", Name: "ListNetwork75", External: true, SubnetIds: []string{}},
+		{Id: "42", Name: "ListNetwork42", External: true, SubnetIds: []string{}},
 	}
 	err := s.service.addNetwork(newNets[0])
 	c.Assert(err, gc.IsNil)
@@ -447,11 +447,11 @@ func (s *NeutronSuite) TestAllNetworksV2(c *gc.C) {
 
 func (s *NeutronSuite) TestGetNetworkV2(c *gc.C) {
 	network := neutron.NetworkV2{
-		Id: "75", 
-		Name: "ListNetwork75", 
+		Id:        "75",
+		Name:      "ListNetwork75",
 		SubnetIds: []string{"32", "86"},
-		External: true,
-		TenantId: s.service.TenantId,
+		External:  true,
+		TenantId:  s.service.TenantId,
 	}
 	s.ensureNoNetwork(c, network)
 	s.service.addNetwork(network)
@@ -486,11 +486,10 @@ func (s *NeutronSuite) TestAllSubnetsV2(c *gc.C) {
 	}
 }
 
-
 func (s *NeutronSuite) TestGetSubnetV2(c *gc.C) {
 	subnet := neutron.SubnetV2{
-		Id: "82", 
-		Name: "ListSubnet82", 
+		Id:       "82",
+		Name:     "ListSubnet82",
 		TenantId: s.service.TenantId,
 	}
 	s.service.addSubnet(subnet)

@@ -38,6 +38,7 @@ const (
 func (c *Client) CreateContainer(containerName string, acl ACL) error {
 	// [sodre]: Due to a possible bug in ceph-radosgw, we need to split the
 	// creation of the bucket and the changing its ACL.
+	//fmt.Printf("CreateContainer(%s, acl): called \n", containerName)
 	requestData := goosehttp.RequestData{ExpectedStatus: []int{http.StatusAccepted, http.StatusCreated}}
 	err := c.client.SendRequest(client.PUT, "object-store", "", containerName, &requestData)
 	if err != nil {

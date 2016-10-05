@@ -658,7 +658,7 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 			resp := struct {
 				Network neutron.NetworkV2 `json:"network"`
 			}{*network}
-		fmt.Printf("handleNetworks(): %q\n", resp)
+			fmt.Printf("handleNetworks(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		nets := n.allNetworks()
@@ -690,7 +690,7 @@ func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 			resp := struct {
 				Subnet neutron.SubnetV2 `json:"subnet"`
 			}{*subnet}
-		fmt.Printf("handleSubnets(): %q\n", resp)
+			fmt.Printf("handleSubnets(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		subnets := n.allSubnets()
@@ -716,26 +716,26 @@ func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
 	mux.Handle("/v2.0/security-group-rules/", n.handler((*Neutron).handleSecurityGroupRules))
 	mux.Handle("/v2.0/floatingips/", n.handler((*Neutron).handleFloatingIPs))
 	mux.Handle("/v2.0/networks/", n.handler((*Neutron).handleNetworks))
-/*
-	handlers := map[string]http.Handler{
-		// "/":			n.handler((*Neutron).handleApiVersions,
-		// "/v2.0":			n.handler((*Neutron).handleApiVersions,
-		// "/v2.0/":	errBadRequest,
-		//"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
-		"/v2.0/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
-		//"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
-		"/v2.0/security-group-rules/": n.handler((*Neutron).handleSecurityGroupRules),
-		//"/v2.0/floatingips":           n.handler((*Neutron).handleFloatingIPs),
-		"/v2.0/floatingips/":          n.handler((*Neutron).handleFloatingIPs),
-		//"/v2.0/networks":              n.handler((*Neutron).handleNetworks),
-		"/v2.0/networks/":             n.handler((*Neutron).handleNetworks),
-		//"/v2.0/subnets":               n.handler((*Neutron).handleSubnets),
-		"/v2.0/subnets/":              n.handler((*Neutron).handleSubnets),
-	}
-	for path, h := range handlers {
-		//path = strings.Replace(path, "$v", n.VersionPath, 1)
-		fmt.Printf("SetupHTTP(): mux.Handle(%s, %s)\n", path, h)
-		mux.Handle(path, h)
-	}
-*/
+	/*
+		handlers := map[string]http.Handler{
+			// "/":			n.handler((*Neutron).handleApiVersions,
+			// "/v2.0":			n.handler((*Neutron).handleApiVersions,
+			// "/v2.0/":	errBadRequest,
+			//"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
+			"/v2.0/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
+			//"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
+			"/v2.0/security-group-rules/": n.handler((*Neutron).handleSecurityGroupRules),
+			//"/v2.0/floatingips":           n.handler((*Neutron).handleFloatingIPs),
+			"/v2.0/floatingips/":          n.handler((*Neutron).handleFloatingIPs),
+			//"/v2.0/networks":              n.handler((*Neutron).handleNetworks),
+			"/v2.0/networks/":             n.handler((*Neutron).handleNetworks),
+			//"/v2.0/subnets":               n.handler((*Neutron).handleSubnets),
+			"/v2.0/subnets/":              n.handler((*Neutron).handleSubnets),
+		}
+		for path, h := range handlers {
+			//path = strings.Replace(path, "$v", n.VersionPath, 1)
+			fmt.Printf("SetupHTTP(): mux.Handle(%s, %s)\n", path, h)
+			mux.Handle(path, h)
+		}
+	*/
 }

@@ -489,4 +489,3 @@ func (n *Neutron) removeSubnet(subnetId string) error {
 	delete(n.subnets, subnetId)
 	return nil
 }
-

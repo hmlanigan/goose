@@ -13,7 +13,7 @@ import (
 )
 
 type NovaNeutronSuite struct {
-	service *Nova
+	service *NovaNeutron
 }
 
 const (
@@ -25,6 +25,7 @@ const (
 var _ = gc.Suite(&NovaNeutronSuite{})
 
 func (s *NovaNeutronSuite) SetUpSuite(c *gc.C) {
+	fmt.Printf("NovaNeutronSuite.SetUpSuite() called\n")
 	s.service = New(hostname, versionPath, "tenant", region, nil, nil)
 }
 
@@ -584,7 +585,7 @@ func (s *NovaNeutronSuite) TestGetServerByName(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestAddHasRemoveServerSecurityGroup(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	s.ensureNoServer(c, server)
 	s.ensureNoGroup(c, group)
 	ok := s.service.hasServerSecurityGroup(server.Id, group.Id)
@@ -609,7 +610,7 @@ func (s *NovaNeutronSuite) TestAddHasRemoveServerSecurityGroup(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestAddServerSecurityGroupWithInvalidServerFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	s.ensureNoServer(c, server)
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -618,7 +619,7 @@ func (s *NovaNeutronSuite) TestAddServerSecurityGroupWithInvalidServerFails(c *g
 }
 
 func (s *NovaNeutronSuite) TestAddServerSecurityGroupWithInvalidGroupFails(c *gc.C) {
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	server := nova.ServerDetail{Id: "sr1"}
 	s.ensureNoGroup(c, group)
 	s.createServer(c, server)
@@ -629,7 +630,7 @@ func (s *NovaNeutronSuite) TestAddServerSecurityGroupWithInvalidGroupFails(c *gc
 
 func (s *NovaNeutronSuite) TestAddServerSecurityGroupTwiceFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	s.createServer(c, server)
 	defer s.deleteServer(c, server)
 	s.createGroup(c, group)
@@ -648,18 +649,18 @@ func (s *NovaNeutronSuite) TestAllServerSecurityGroups(c *gc.C) {
 	c.Assert(srvGroups, gc.HasLen, 0)
 	s.createServer(c, server)
 	defer s.deleteServer(c, server)
-	groups := []nova.SecurityGroup{
+	groups := []neutron.SecurityGroupV2{
 		{
 			Id:       "1",
 			Name:     "gr1",
 			TenantId: s.service.TenantId,
-			Rules:    []nova.SecurityGroupRule{},
+			Rules:    []neutron.SecurityGroupRuleV2{},
 		},
 		{
 			Id:       "2",
 			Name:     "gr2",
 			TenantId: s.service.TenantId,
-			Rules:    []nova.SecurityGroupRule{},
+			Rules:    []neutron.SecurityGroupRuleV2{},
 		},
 	}
 	for _, group := range groups {
@@ -679,7 +680,7 @@ func (s *NovaNeutronSuite) TestAllServerSecurityGroups(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestRemoveServerSecurityGroupWithInvalidServerFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	s.createServer(c, server)
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -695,7 +696,7 @@ func (s *NovaNeutronSuite) TestRemoveServerSecurityGroupWithInvalidServerFails(c
 }
 
 func (s *NovaNeutronSuite) TestRemoveServerSecurityGroupWithInvalidGroupFails(c *gc.C) {
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	server := nova.ServerDetail{Id: "sr1"}
 	s.createGroup(c, group)
 	s.createServer(c, server)
@@ -713,7 +714,7 @@ func (s *NovaNeutronSuite) TestRemoveServerSecurityGroupWithInvalidGroupFails(c 
 
 func (s *NovaNeutronSuite) TestRemoveServerSecurityGroupTwiceFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	group := nova.SecurityGroup{Id: "1"}
+	group := neutron.SecurityGroupV2{Id: "1"}
 	s.createServer(c, server)
 	defer s.deleteServer(c, server)
 	s.createGroup(c, group)
@@ -728,7 +729,7 @@ func (s *NovaNeutronSuite) TestRemoveServerSecurityGroupTwiceFails(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestAddHasRemoveServerFloatingIP(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	fip := nova.FloatingIP{Id: "1", IP: "1.2.3.4"}
+	fip := neutron.FloatingIPV2{Id: "1", IP: "1.2.3.4"}
 	s.ensureNoServer(c, server)
 	s.ensureNoIP(c, fip)
 	ok := s.service.hasServerFloatingIP(server.Id, fip.IP)
@@ -753,7 +754,7 @@ func (s *NovaNeutronSuite) TestAddHasRemoveServerFloatingIP(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestAddServerFloatingIPWithInvalidServerFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	fip := nova.FloatingIP{Id: "1"}
+	fip := neutron.FloatingIPV2{Id: "1"}
 	s.ensureNoServer(c, server)
 	s.createIP(c, fip)
 	defer s.deleteIP(c, fip)
@@ -762,7 +763,7 @@ func (s *NovaNeutronSuite) TestAddServerFloatingIPWithInvalidServerFails(c *gc.C
 }
 
 func (s *NovaNeutronSuite) TestAddServerFloatingIPWithInvalidIPFails(c *gc.C) {
-	fip := nova.FloatingIP{Id: "1"}
+	fip := neutron.FloatingIPV2{Id: "1"}
 	server := nova.ServerDetail{Id: "sr1"}
 	s.ensureNoIP(c, fip)
 	s.createServer(c, server)
@@ -773,7 +774,7 @@ func (s *NovaNeutronSuite) TestAddServerFloatingIPWithInvalidIPFails(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestAddServerFloatingIPTwiceFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	fip := nova.FloatingIP{Id: "1"}
+	fip := neutron.FloatingIPV2{Id: "1"}
 	s.createServer(c, server)
 	defer s.deleteServer(c, server)
 	s.createIP(c, fip)
@@ -788,7 +789,7 @@ func (s *NovaNeutronSuite) TestAddServerFloatingIPTwiceFails(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestRemoveServerFloatingIPWithInvalidServerFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	fip := nova.FloatingIP{Id: "1"}
+	fip := neutron.FloatingIPV2{Id: "1"}
 	s.createServer(c, server)
 	s.createIP(c, fip)
 	defer s.deleteIP(c, fip)
@@ -804,7 +805,7 @@ func (s *NovaNeutronSuite) TestRemoveServerFloatingIPWithInvalidServerFails(c *g
 }
 
 func (s *NovaNeutronSuite) TestRemoveServerFloatingIPWithInvalidIPFails(c *gc.C) {
-	fip := nova.FloatingIP{Id: "1"}
+	fip := neutron.FloatingIPV2{Id: "1"}
 	server := nova.ServerDetail{Id: "sr1"}
 	s.createIP(c, fip)
 	s.createServer(c, server)
@@ -822,7 +823,7 @@ func (s *NovaNeutronSuite) TestRemoveServerFloatingIPWithInvalidIPFails(c *gc.C)
 
 func (s *NovaNeutronSuite) TestRemoveServerFloatingIPTwiceFails(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	fip := nova.FloatingIP{Id: "1"}
+	fip := neutron.FloatingIPV2{Id: "1"}
 	s.createServer(c, server)
 	defer s.deleteServer(c, server)
 	s.createIP(c, fip)
@@ -1176,8 +1177,8 @@ func (s *NovaNeutronSuite) TestGetFloatingIPByAddr(c *gc.C) {
 func (s *NovaNeutronSuite) TestAllNetworksV2(c *gc.C) {
 	networks := s.service.allNetworks()
 	newNets := []neutron.NetworkV2{
-		{Id: "75", Name: "ListNetwork75", External: true, SubnetIds: []string {}},
-		{Id: "42", Name: "ListNetwork42", External: true, SubnetIds: []string {}},
+		{Id: "75", Name: "ListNetwork75", External: true, SubnetIds: []string{}},
+		{Id: "42", Name: "ListNetwork42", External: true, SubnetIds: []string{}},
 	}
 	err := s.service.addNetwork(newNets[0])
 	c.Assert(err, gc.IsNil)
@@ -1201,11 +1202,11 @@ func (s *NovaNeutronSuite) TestAllNetworksV2(c *gc.C) {
 
 func (s *NovaNeutronSuite) TestGetNetworkV2(c *gc.C) {
 	network := neutron.NetworkV2{
-		Id: "75", 
-		Name: "ListNetwork75", 
+		Id:        "75",
+		Name:      "ListNetwork75",
 		SubnetIds: []string{"32", "86"},
-		External: true,
-		TenantId: s.service.TenantId,
+		External:  true,
+		TenantId:  s.service.TenantId,
 	}
 	s.ensureNoNetwork(c, network)
 	s.service.addNetwork(network)
@@ -1240,11 +1241,10 @@ func (s *NovaNeutronSuite) TestAllSubnetsV2(c *gc.C) {
 	}
 }
 
-
 func (s *NovaNeutronSuite) TestGetSubnetV2(c *gc.C) {
 	subnet := neutron.SubnetV2{
-		Id: "82", 
-		Name: "ListSubnet82", 
+		Id:       "82",
+		Name:     "ListSubnet82",
 		TenantId: s.service.TenantId,
 	}
 	s.service.addSubnet(subnet)
