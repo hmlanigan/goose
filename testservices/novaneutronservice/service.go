@@ -3,7 +3,7 @@
 package novaneutronservice
 
 import (
-	"fmt"
+	//"fmt"
 	"net/url"
 	"regexp"
 	"sort"
@@ -19,7 +19,7 @@ var _ testservices.HttpService = (*NovaNeutron)(nil)
 var _ identityservice.ServiceProvider = (*NovaNeutron)(nil)
 
 // NovaNeutron implements a OpenStack Nova testing service utilizing
-// neutron networking and security groups and contains the service
+// neutron networking and security groups and contains the service 
 // double's internal state.
 type NovaNeutron struct {
 	testservices.ServiceInstance
@@ -58,24 +58,11 @@ func (n *NovaNeutron) endpointURL(version bool, path string) string {
 		if version {
 			ep += n.VersionPath + "/"
 		}
-		ep += n.TenantId + "/"
+		ep += n.TenantId
 	}
 	if path != "" {
-		ep += strings.TrimLeft(path, "/")
+		ep += "/" + strings.TrimLeft(path, "/")
 	}
-	fmt.Printf("endpointURL(%s, %s): returns %s\n", version, path, ep)
-	return ep
-}
-
-func (n *NovaNeutron) neutronEndpointURL(version bool, path string) string {
-	ep := n.Scheme + "://" + n.Hostname
-	if version {
-		ep += n.VersionPath + "/"
-	}
-	if path != "" {
-		ep += strings.TrimLeft(path, "/")
-	}
-	fmt.Printf("neutronEndpointURL(%s, %s): returns %s\n", version, path, ep)
 	return ep
 }
 
@@ -96,7 +83,6 @@ func (n *NovaNeutron) V3Endpoints() []identityservice.V3Endpoint {
 
 // New creates an instance of the Nova object, given the parameters.
 func New(hostURL, versionPath, tenantId, region string, identityService, fallbackIdentity identityservice.IdentityService) *NovaNeutron {
-	//fmt.Printf("New(): called \n")
 	URL, err := url.Parse(hostURL)
 	if err != nil {
 		panic(err)
@@ -111,19 +97,19 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 		{Id: "2", Name: "m1.small", RAM: 2048, VCPUs: 1},
 		{Id: "3", Name: "m1.medium", RAM: 4096, VCPUs: 2},
 	}
-	// Real openstack instances have a default security group "out of the box". So we add it here.
-	defaultSecurityGroups := []neutron.SecurityGroupV2{
-		{Id: "999", Name: "default", Description: "default group"},
-	}
-	// There are no create/delete network/subnet commands, so make a few default
-	defaultNetworks := []neutron.NetworkV2{
-		{Id: "999", Name: "private", SubnetIds: []string{"999-01"}, External: false},
-		{Id: "998", Name: "public", SubnetIds: []string{"998-01"}, External: true},
-	}
-	defaultSubnets := []neutron.SubnetV2{
-		{Id: "999-01", NetworkId: "999"},
-		{Id: "998-01", NetworkId: "998"},
-	}
+        // Real openstack instances have a default security group "out of the box". So we add it here.
+        defaultSecurityGroups := []neutron.SecurityGroupV2{
+                {Id: "999", Name: "default", Description: "default group"},
+        }
+        // There are no create/delete network/subnet commands, so make a few default
+        defaultNetworks := []neutron.NetworkV2{
+                {Id: "999", Name: "private", SubnetIds: []string{"999-01"}, External: false},
+                {Id: "998", Name: "public", SubnetIds: []string{"998-01"}, External: true},
+        }
+        defaultSubnets := []neutron.SubnetV2{
+                {Id: "999-01", NetworkId: "999"},
+                {Id: "998-01", NetworkId: "998"},
+        }
 	novaNeutronService := &NovaNeutron{
 		flavors:                   make(map[string]nova.FlavorDetail),
 		servers:                   make(map[string]nova.ServerDetail),
@@ -131,7 +117,6 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 		rules:                     make(map[string]neutron.SecurityGroupRuleV2),
 		floatingIPs:               make(map[string]neutron.FloatingIPV2),
 		networks:                  make(map[string]neutron.NetworkV2),
-		subnets:                   make(map[string]neutron.SubnetV2),
 		serverGroups:              make(map[string][]string),
 		serverIPs:                 make(map[string][]string),
 		availabilityZones:         make(map[string]nova.AvailabilityZone),
@@ -148,23 +133,7 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 	}
 	if identityService != nil {
 		identityService.RegisterServiceProvider("nova", "compute", novaNeutronService)
-		//identityService.RegisterServiceProvider("neutron", "network", novaNeutronService)
-		networkServiceDef := identityservice.V2Service{
-			Name: "neutron",
-			Type: "network",
-			Endpoints: []identityservice.Endpoint{
-				{AdminURL: novaNeutronService.neutronEndpointURL(false, ""),
-					InternalURL: novaNeutronService.neutronEndpointURL(false, ""),
-					PublicURL:   novaNeutronService.neutronEndpointURL(false, ""),
-					Region:      novaNeutronService.Region},
-			},
-		}
-		networkService3Def := identityservice.V3Service{
-			Name:      "neutron",
-			Type:      "network",
-			Endpoints: identityservice.NewV3Endpoints("", "", novaNeutronService.neutronEndpointURL(false, ""), novaNeutronService.Region),
-		}
-		identityService.AddService(identityservice.Service{V2: networkServiceDef, V3: networkService3Def})
+		identityService.RegisterServiceProvider("neutron", "network", novaNeutronService)
 	}
 	for i, flavor := range defaultFlavors {
 		novaNeutronService.buildFlavorLinks(&flavor)
@@ -174,24 +143,24 @@ func New(hostURL, versionPath, tenantId, region string, identityService, fallbac
 			panic(err)
 		}
 	}
-	for _, group := range defaultSecurityGroups {
-		err := novaNeutronService.addSecurityGroup(group)
-		if err != nil {
-			panic(err)
-		}
-	}
-	for _, net := range defaultNetworks {
-		err := novaNeutronService.addNetwork(net)
-		if err != nil {
-			panic(err)
-		}
-	}
-	for _, subnet := range defaultSubnets {
-		err := novaNeutronService.addSubnet(subnet)
-		if err != nil {
-			panic(err)
-		}
-	}
+        for _, group := range defaultSecurityGroups {
+                err := novaNeutronService.addSecurityGroup(group)
+                if err != nil {
+                        panic(err)
+                }
+        }
+        for _, net := range defaultNetworks {
+                err := novaNeutronService.addNetwork(net)
+                if err != nil {
+                        panic(err)
+                }
+        }
+        for _, subnet := range defaultSubnets {
+                err := novaNeutronService.addSubnet(subnet)
+                if err != nil {
+                        panic(err)
+                }
+        }
 	return novaNeutronService
 }
 
@@ -477,7 +446,6 @@ func (n *NovaNeutron) removeServer(serverId string) error {
 	delete(n.servers, serverId)
 	return nil
 }
-
 // addServerSecurityGroup attaches an existing server to a group.
 func (n *NovaNeutron) addServerSecurityGroup(serverId string, groupId string) error {
 	if err := n.ProcessFunctionHook(n, serverId, groupId); err != nil {
@@ -565,7 +533,6 @@ func (n *NovaNeutron) removeServerSecurityGroup(serverId string, groupId string)
 	n.serverGroups[serverId] = groups
 	return nil
 }
-
 // addServerFloatingIP attaches an existing floating IP to a server.
 func (n *NovaNeutron) addServerFloatingIP(serverId string, ipId string) error {
 	if err := n.ProcessFunctionHook(n, serverId, ipId); err != nil {
@@ -1048,3 +1015,4 @@ func (n *NovaNeutron) removeSubnet(subnetId string) error {
 	delete(n.subnets, subnetId)
 	return nil
 }
+

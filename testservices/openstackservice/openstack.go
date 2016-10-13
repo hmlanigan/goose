@@ -8,7 +8,8 @@ import (
 
 	"gopkg.in/goose.v1/identity"
 	"gopkg.in/goose.v1/testservices/identityservice"
-	"gopkg.in/goose.v1/testservices/novaneutronservice"
+	"gopkg.in/goose.v1/testservices/neutronservice"
+	"gopkg.in/goose.v1/testservices/novaservice"
 	"gopkg.in/goose.v1/testservices/swiftservice"
 )
 
@@ -18,7 +19,8 @@ type Openstack struct {
 	// Keystone v3 supports serving both V2 and V3 at the same time
 	// this will intend to emulate that behavior.
 	FallbackIdentity identityservice.IdentityService
-	NovaNeutron      *novaneutronservice.NovaNeutron
+	Neutron          *neutronservice.Neutron
+	Nova             *novaservice.Nova
 	Swift            *swiftservice.Swift
 	// base url of openstack endpoints, might be required to
 	// simmulate response contents such as the ones from
@@ -57,7 +59,8 @@ func New(cred *identity.Credentials, authMode identity.AuthMode) *Openstack {
 	if cred.TenantName == "" {
 		panic("Openstack service double requires a tenant to be specified.")
 	}
-	openstack.NovaNeutron = novaneutronservice.New(cred.URL, "v2", userInfo.TenantId, cred.Region, openstack.Identity, openstack.FallbackIdentity)
+	openstack.Neutron = neutronservice.New(cred.URL, "v2", userInfo.TenantId, cred.Region, openstack.Identity, openstack.FallbackIdentity)
+	openstack.Nova = novaservice.New(cred.URL, "v2", userInfo.TenantId, cred.Region, openstack.Identity, openstack.FallbackIdentity)
 	// Create the swift service using only the region base so we emulate real world deployments.
 	regionParts := strings.Split(cred.Region, ".")
 	baseRegion := regionParts[len(regionParts)-1]
@@ -107,7 +110,8 @@ func (openstack *Openstack) SetupHTTP(mux *http.ServeMux) {
 	if openstack.FallbackIdentity != nil {
 		openstack.FallbackIdentity.SetupHTTP(mux)
 	}
-	openstack.NovaNeutron.SetupHTTP(mux)
+	openstack.Neutron.SetupHTTP(mux)
+	openstack.Nova.SetupHTTP(mux)
 	openstack.Swift.SetupHTTP(mux)
 
 	// Handle root calls to be able to return auth information or fallback
@@ -127,7 +131,7 @@ const authInformationBody = `{"versions": {"values": [{"status": "stable", ` +
 
 func (openstack *Openstack) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		openstack.NovaNeutron.HandleRoot(w, r)
+		openstack.Nova.HandleRoot(w, r)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

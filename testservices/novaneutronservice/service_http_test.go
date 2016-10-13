@@ -14,7 +14,6 @@ import (
 
 	gc "gopkg.in/check.v1"
 
-	"gopkg.in/goose.v1/neutron"
 	"gopkg.in/goose.v1/nova"
 	"gopkg.in/goose.v1/testing/httpsuite"
 	"gopkg.in/goose.v1/testservices/hook"
@@ -23,7 +22,7 @@ import (
 
 type NovaNeutronHTTPSuite struct {
 	httpsuite.HTTPSuite
-	service *NovaNeutron
+	service *Nova
 	token   string
 }
 
@@ -35,10 +34,9 @@ type NovaNeutronHTTPSSuite struct {
 	token   string
 }
 
-var _ = gc.Suite(&NovaNeutronHTTPSSuite{HTTPSuite: httpsuite.HTTPSuite{UseTLS: true}})
+var _ = gc.Suite(&NovaHTTPSSuite{HTTPSuite: httpsuite.HTTPSuite{UseTLS: true}})
 
-func (s *NovaNeutronHTTPSuite) SetUpSuite(c *gc.C) {
-	fmt.Printf("NovaNeutronHTTPSSuite.SetUpSuite() called\n")
+func (s *NovaNeutronHTTPSSuite) SetUpSuite(c *gc.C) {
 	s.HTTPSuite.SetUpSuite(c)
 	identityDouble := identityservice.NewUserPass()
 	userInfo := identityDouble.AddUser("fred", "secret", "tenant")
@@ -46,19 +44,19 @@ func (s *NovaNeutronHTTPSuite) SetUpSuite(c *gc.C) {
 	s.service = New(s.Server.URL, versionPath, userInfo.TenantId, region, identityDouble, nil)
 }
 
-func (s *NovaNeutronHTTPSuite) TearDownSuite(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TearDownSuite(c *gc.C) {
 	s.HTTPSuite.TearDownSuite(c)
 }
 
-func (s *NovaNeutronHTTPSuite) SetUpTest(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) SetUpTest(c *gc.C) {
 	s.HTTPSuite.SetUpTest(c)
 	s.service.SetupHTTP(s.Mux)
 	// this is otherwise handled not directly by nova test service
 	// but by openstack that tries for / before.
-	s.Mux.Handle("/", s.service.handler((*NovaNeutron).handleRoot))
+	s.Mux.Handle("/", s.service.handler((*Nova).handleRoot))
 }
 
-func (s *NovaNeutronHTTPSuite) TearDownTest(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TearDownTest(c *gc.C) {
 	s.HTTPSuite.TearDownTest(c)
 }
 
@@ -86,7 +84,7 @@ func assertBody(c *gc.C, resp *http.Response, expected *errorResponse) {
 
 // sendRequest constructs an HTTP request from the parameters and
 // sends it, returning the response or an error.
-func (s *NovaNeutronHTTPSuite) sendRequest(method, url string, body []byte, headers http.Header) (*http.Response, error) {
+func (s *NovaNeutronHTTPSSuite) sendRequest(method, url string, body []byte, headers http.Header) (*http.Response, error) {
 	if !strings.HasPrefix(url, "http") {
 		url = "http://" + s.service.Hostname + strings.TrimLeft(url, "/")
 	}
@@ -106,7 +104,7 @@ func (s *NovaNeutronHTTPSuite) sendRequest(method, url string, body []byte, head
 
 // authRequest is a shortcut for sending requests with pre-set token
 // header and correct version prefix and tenant ID in the URL.
-func (s *NovaNeutronHTTPSuite) authRequest(method, path string, body []byte, headers http.Header) (*http.Response, error) {
+func (s *NovaNeutronHTTPSSuite) authRequest(method, path string, body []byte, headers http.Header) (*http.Response, error) {
 	if headers == nil {
 		headers = make(http.Header)
 	}
@@ -117,7 +115,7 @@ func (s *NovaNeutronHTTPSuite) authRequest(method, path string, body []byte, hea
 
 // jsonRequest serializes the passed body object to JSON and sends a
 // the request with authRequest().
-func (s *NovaNeutronHTTPSuite) jsonRequest(method, path string, body interface{}, headers http.Header) (*http.Response, error) {
+func (s *NovaNeutronHTTPSSuite) jsonRequest(method, path string, body interface{}, headers http.Header) (*http.Response, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -142,7 +140,7 @@ type SimpleTest struct {
 	expect  *errorResponse
 }
 
-func (s *NovaNeutronHTTPSuite) simpleTests() []SimpleTest {
+func (s *NovaNeutronHTTPSSuite) simpleTests() []SimpleTest {
 	var simpleTests = []SimpleTest{
 		{
 			unauth:  true,
@@ -329,301 +327,121 @@ func (s *NovaNeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    "/servers/detail/invalid",
 			expect: errNotFound,
 		},
-		/*
-			{
-				method: "GET",
-				url:    "/os-security-groups/42",
-				expect: errNotFoundJSONSG,
-			},
-			{
-				method: "POST",
-				url:    "/os-security-groups",
-				expect: errBadRequest2,
-			},
-			{
-				method: "POST",
-				url:    "/os-security-groups/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "/os-security-groups",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "/os-security-groups/invalid",
-				expect: errNotFoundJSONSG,
-			},
-			{
-				method: "DELETE",
-				url:    "/os-security-groups",
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "/os-security-groups/42",
-				expect: errNotFoundJSONSG,
-			},
-			{
-				method: "GET",
-				url:    "/os-security-group-rules",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "GET",
-				url:    "/os-security-group-rules/invalid",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "GET",
-				url:    "/os-security-group-rules/42",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "POST",
-				url:    "/os-security-group-rules",
-				expect: errBadRequest2,
-			},
-			{
-				method: "POST",
-				url:    "/os-security-group-rules/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "/os-security-group-rules",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "/os-security-group-rules/invalid",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "DELETE",
-				url:    "/os-security-group-rules",
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "/os-security-group-rules/42",
-				expect: errNotFoundJSONSGR,
-			},
-			{
-				method: "GET",
-				url:    "/os-floating-ips/42",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "POST",
-				url:    "/os-floating-ips/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "/os-floating-ips",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "/os-floating-ips/invalid",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "DELETE",
-				url:    "/os-floating-ips",
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "/os-floating-ips/invalid",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "GET",
-				url:    "v2.0" + neutron.ApiSecurityGroupsV2 + "/42",
-				expect: errNotFoundJSONSG,
-			},
-			{
-				method: "POST",
-				url:    "v2.0" + neutron.ApiSecurityGroupsV2,
-				expect: errBadRequest2,
-			},
-				{
-					method: "POST",
-					url:    "v2.0"+neutron.ApiSecurityGroupsV2 + "/invalid",
-					expect: errNotFound,
-				},
-		*/
 		{
-			method: "PUT",
-			url:    "v2.0" + neutron.ApiSecurityGroupsV2,
-			expect: errNotFound,
-		},
-		/*
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiSecurityGroupsV2 + "/invalid",
-				expect: errNotFoundJSONSG,
-			},
-		*/
-		{
-			method: "DELETE",
-			url:    "v2.0" + neutron.ApiSecurityGroupsV2,
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    "v2.0" + neutron.ApiSecurityGroupsV2 + "/42",
+			method: "GET",
+			url:    "/os-security-groups/42",
 			expect: errNotFoundJSONSG,
 		},
 		{
-			method: "GET",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2,
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "GET",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2 + "/invalid",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "GET",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2 + "/42",
-			expect: errNotFoundJSON,
-		},
-		{
 			method: "POST",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2,
+			url:    "/os-security-groups",
 			expect: errBadRequest2,
 		},
 		{
 			method: "POST",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2 + "/invalid",
+			url:    "/os-security-groups/invalid",
 			expect: errNotFound,
 		},
-		/*
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiSecurityGroupRulesV2,
-				expect: errNotFound,
-			},
-		*/
 		{
 			method: "PUT",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2 + "/invalid",
-			expect: errNotFoundJSON,
+			url:    "/os-security-groups",
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    "/os-security-groups/invalid",
+			expect: errNotFoundJSONSG,
 		},
 		{
 			method: "DELETE",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2,
+			url:    "/os-security-groups",
 			expect: errNotFound,
 		},
 		{
 			method: "DELETE",
-			url:    "v2.0" + neutron.ApiSecurityGroupRulesV2 + "/42",
-			expect: errNotFoundJSONSGR,
+			url:    "/os-security-groups/42",
+			expect: errNotFoundJSONSG,
 		},
 		{
 			method: "GET",
-			url:    "v2.0" + neutron.ApiFloatingIPsV2 + "/42",
+			url:    "/os-security-group-rules",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "GET",
+			url:    "/os-security-group-rules/invalid",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "GET",
+			url:    "/os-security-group-rules/42",
 			expect: errNotFoundJSON,
 		},
 		{
 			method: "POST",
-			url:    "v2.0" + neutron.ApiFloatingIPsV2 + "/invalid",
+			url:    "/os-security-group-rules",
+			expect: errBadRequest2,
+		},
+		{
+			method: "POST",
+			url:    "/os-security-group-rules/invalid",
 			expect: errNotFound,
 		},
-		/*
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiFloatingIPsV2,
-				expect: errNotFound,
-			},
-		*/
 		{
 			method: "PUT",
-			url:    "v2.0" + neutron.ApiFloatingIPsV2 + "/invalid",
+			url:    "/os-security-group-rules",
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    "/os-security-group-rules/invalid",
 			expect: errNotFoundJSON,
 		},
 		{
 			method: "DELETE",
-			url:    "v2.0" + neutron.ApiFloatingIPsV2,
+			url:    "/os-security-group-rules",
 			expect: errNotFound,
 		},
 		{
 			method: "DELETE",
-			url:    "v2.0" + neutron.ApiFloatingIPsV2 + "/invalid",
+			url:    "/os-security-group-rules/42",
+			expect: errNotFoundJSONSGR,
+		},
+		{
+			method: "GET",
+			url:    "/os-floating-ips/42",
 			expect: errNotFoundJSON,
 		},
-		/*
-			{
-				method: "GET",
-				url:    "v2.0"+neutron.ApiNetworksV2 + "/42",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "POST",
-				url:    "v2.0"+neutron.ApiNetworksV2 + "/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiNetworksV2,
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiNetworksV2 + "/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "v2.0"+neutron.ApiNetworksV2,
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "v2.0"+neutron.ApiNetworksV2 + "/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "GET",
-				url:    "v2.0"+neutron.ApiSubnetsV2 + "/42",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "POST",
-				url:    "v2.0"+neutron.ApiSubnetsV2 + "/invalid",
-				expect: errNotFoundJSON,
-			},
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiSubnetsV2,
-				expect: errNotFound,
-			},
-			{
-				method: "PUT",
-				url:    "v2.0"+neutron.ApiSubnetsV2 + "/invalid",
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "v2.0"+neutron.ApiSubnetsV2,
-				expect: errNotFound,
-			},
-			{
-				method: "DELETE",
-				url:    "v2.0"+neutron.ApiSubnetsV2 + "/invalid",
-				expect: errNotFound,
-			},
-		*/
+		{
+			method: "POST",
+			url:    "/os-floating-ips/invalid",
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    "/os-floating-ips",
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    "/os-floating-ips/invalid",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "DELETE",
+			url:    "/os-floating-ips",
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    "/os-floating-ips/invalid",
+			expect: errNotFoundJSON,
+		},
 	}
 	return simpleTests
 }
 
-func (s *NovaNeutronHTTPSuite) TestSimpleRequestTests(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestSimpleRequestTests(c *gc.C) {
 	simpleTests := s.simpleTests()
 	for i, t := range simpleTests {
 		c.Logf("#%d. %s %s -> %d", i, t.method, t.url, t.expect.code)
@@ -647,7 +465,7 @@ func (s *NovaNeutronHTTPSuite) TestSimpleRequestTests(c *gc.C) {
 	fmt.Printf("total: %d\n", len(simpleTests))
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetFlavors(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetFlavors(c *gc.C) {
 	// The test service has 3 default flavours.
 	var expected struct {
 		Flavors []nova.Entity
@@ -672,7 +490,7 @@ func (s *NovaNeutronHTTPSuite) TestGetFlavors(c *gc.C) {
 	c.Assert(expectedFlavor.Flavor.Name, gc.Equals, "m1.tiny")
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetFlavorsDetail(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetFlavorsDetail(c *gc.C) {
 	// The test service has 3 default flavours.
 	flavors := s.service.allFlavors()
 	c.Assert(flavors, gc.HasLen, 3)
@@ -692,7 +510,7 @@ func (s *NovaNeutronHTTPSuite) TestGetFlavorsDetail(c *gc.C) {
 	assertBody(c, resp, errNotFound)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServers(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServers(c *gc.C) {
 	entities, err := s.service.allServersAsEntities(nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(entities, gc.HasLen, 0)
@@ -736,7 +554,7 @@ func (s *NovaNeutronHTTPSuite) TestGetServers(c *gc.C) {
 	c.Assert(expectedServer.Server, gc.DeepEquals, servers[0])
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServersWithFilters(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServersWithFilters(c *gc.C) {
 	entities, err := s.service.allServersAsEntities(nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(entities, gc.HasLen, 0)
@@ -770,7 +588,7 @@ func (s *NovaNeutronHTTPSuite) TestGetServersWithFilters(c *gc.C) {
 	c.Assert(expected.Servers[0].Name, gc.Equals, servers[0].Name)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServersWithBadFilter(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServersWithBadFilter(c *gc.C) {
 	url := "/servers?name=(server"
 	resp, err := s.authRequest("GET", url, nil, nil)
 	c.Assert(err, gc.IsNil)
@@ -787,7 +605,7 @@ func (s *NovaNeutronHTTPSuite) TestGetServersWithBadFilter(c *gc.C) {
 	c.Check(expected.Message, gc.Matches, `error parsing.*\(server.*`)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServersPatchMatch(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServersPatchMatch(c *gc.C) {
 	cleanup := s.service.RegisterControlPoint(
 		"matchServers",
 		func(sc hook.ServiceControl, args ...interface{}) error {
@@ -810,7 +628,7 @@ func (s *NovaNeutronHTTPSuite) TestGetServersPatchMatch(c *gc.C) {
 	c.Check(expected.Message, gc.Equals, "Unexpected error")
 }
 
-func (s *NovaNeutronHTTPSuite) TestNewUUID(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestNewUUID(c *gc.C) {
 	uuid, err := newUUID()
 	c.Assert(err, gc.IsNil)
 	var p1, p2, p3, p4, p5 string
@@ -822,7 +640,7 @@ func (s *NovaNeutronHTTPSuite) TestNewUUID(c *gc.C) {
 	c.Assert(uuid2, gc.Not(gc.Equals), uuid)
 }
 
-func (s *NovaNeutronHTTPSuite) assertAddresses(c *gc.C, serverId string) {
+func (s *NovaNeutronHTTPSSuite) assertAddresses(c *gc.C, serverId string) {
 	server, err := s.service.server(serverId)
 	c.Assert(err, gc.IsNil)
 	c.Assert(server.Addresses, gc.HasLen, 2)
@@ -840,7 +658,7 @@ func (s *NovaNeutronHTTPSuite) assertAddresses(c *gc.C, serverId string) {
 	}
 }
 
-func (s *NovaNeutronHTTPSuite) TestRunServer(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestRunServer(c *gc.C) {
 	entities, err := s.service.allServersAsEntities(nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(entities, gc.HasLen, 0)
@@ -895,10 +713,10 @@ func (s *NovaNeutronHTTPSuite) TestRunServer(c *gc.C) {
 		{"name": "group1"},
 		{"name": "group2"},
 	}
-	err = s.service.addSecurityGroup(neutron.SecurityGroupV2{Id: "1", Name: "group1"})
+	err = s.service.addSecurityGroup(nova.SecurityGroup{Id: "1", Name: "group1"})
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup("1")
-	err = s.service.addSecurityGroup(neutron.SecurityGroupV2{Id: "2", Name: "group2"})
+	err = s.service.addSecurityGroup(nova.SecurityGroup{Id: "2", Name: "group2"})
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup("2")
 	resp, err = s.jsonRequest("POST", "/servers", req, nil)
@@ -920,7 +738,7 @@ func (s *NovaNeutronHTTPSuite) TestRunServer(c *gc.C) {
 	s.service.removeServer(srv.Id)
 }
 
-func (s *NovaNeutronHTTPSuite) TestDeleteServer(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestDeleteServer(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
 	_, err := s.service.server(server.Id)
 	c.Assert(err, gc.NotNil)
@@ -934,7 +752,7 @@ func (s *NovaNeutronHTTPSuite) TestDeleteServer(c *gc.C) {
 	c.Assert(err, gc.NotNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServersDetail(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServersDetail(c *gc.C) {
 	servers, err := s.service.allServers(nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(servers, gc.HasLen, 0)
@@ -971,7 +789,7 @@ func (s *NovaNeutronHTTPSuite) TestGetServersDetail(c *gc.C) {
 	assertBody(c, resp, errNotFound)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServersDetailWithFilters(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServersDetailWithFilters(c *gc.C) {
 	servers, err := s.service.allServers(nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(servers, gc.HasLen, 0)
@@ -1004,8 +822,202 @@ func (s *NovaNeutronHTTPSuite) TestGetServersDetailWithFilters(c *gc.C) {
 	c.Assert(expected.Servers[0], gc.DeepEquals, servers[0])
 }
 
-func (s *NovaNeutronHTTPSuite) TestAddServerSecurityGroup(c *gc.C) {
-	group := neutron.SecurityGroupV2{Id: "1", Name: "group"}
+func (s *NovaNeutronHTTPSSuite) TestGetSecurityGroups(c *gc.C) {
+	// There is always a default security group.
+	groups := s.service.allSecurityGroups()
+	c.Assert(groups, gc.HasLen, 1)
+	var expected struct {
+		Groups []nova.SecurityGroup `json:"security_groups"`
+	}
+	resp, err := s.authRequest("GET", "/os-security-groups", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Groups, gc.HasLen, 1)
+	groups = []nova.SecurityGroup{
+		{
+			Id:       "1",
+			Name:     "group 1",
+			TenantId: s.service.TenantId,
+			Rules:    []nova.SecurityGroupRule{},
+		},
+		{
+			Id:       "2",
+			Name:     "group 2",
+			TenantId: s.service.TenantId,
+			Rules:    []nova.SecurityGroupRule{},
+		},
+	}
+	for _, group := range groups {
+		err := s.service.addSecurityGroup(group)
+		c.Assert(err, gc.IsNil)
+		defer s.service.removeSecurityGroup(group.Id)
+	}
+	resp, err = s.authRequest("GET", "/os-security-groups", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Groups, gc.HasLen, len(groups)+1)
+	checkGroupsInList(c, groups, expected.Groups)
+	var expectedGroup struct {
+		Group nova.SecurityGroup `json:"security_group"`
+	}
+	resp, err = s.authRequest("GET", "/os-security-groups/1", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expectedGroup)
+	c.Assert(expectedGroup.Group, gc.DeepEquals, groups[0])
+}
+
+func (s *NovaNeutronHTTPSSuite) TestAddSecurityGroup(c *gc.C) {
+	group := nova.SecurityGroup{
+		Id:          "1",
+		Name:        "group 1",
+		Description: "desc",
+		TenantId:    s.service.TenantId,
+		Rules:       []nova.SecurityGroupRule{},
+	}
+	_, err := s.service.securityGroup(group.Id)
+	c.Assert(err, gc.NotNil)
+	var req struct {
+		Group struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"security_group"`
+	}
+	req.Group.Name = group.Name
+	req.Group.Description = group.Description
+	var expected struct {
+		Group nova.SecurityGroup `json:"security_group"`
+	}
+	resp, err := s.jsonRequest("POST", "/os-security-groups", req, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Group, gc.DeepEquals, group)
+	err = s.service.removeSecurityGroup(group.Id)
+	c.Assert(err, gc.IsNil)
+}
+
+func (s *NovaNeutronHTTPSSuite) TestDeleteSecurityGroup(c *gc.C) {
+	group := nova.SecurityGroup{Id: "1", Name: "group 1"}
+	_, err := s.service.securityGroup(group.Id)
+	c.Assert(err, gc.NotNil)
+	err = s.service.addSecurityGroup(group)
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSecurityGroup(group.Id)
+	resp, err := s.authRequest("DELETE", "/os-security-groups/1", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusAccepted)
+	_, err = s.service.securityGroup(group.Id)
+	c.Assert(err, gc.NotNil)
+}
+
+func (s *NovaNeutronHTTPSSuite) TestAddSecurityGroupRule(c *gc.C) {
+	group1 := nova.SecurityGroup{Id: "1", Name: "src"}
+	group2 := nova.SecurityGroup{Id: "2", Name: "tgt"}
+	err := s.service.addSecurityGroup(group1)
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSecurityGroup(group1.Id)
+	err = s.service.addSecurityGroup(group2)
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSecurityGroup(group2.Id)
+	riIngress := nova.RuleInfo{
+		ParentGroupId: "1",
+		FromPort:      1234,
+		ToPort:        4321,
+		IPProtocol:    "tcp",
+		Cidr:          "1.2.3.4/5",
+	}
+	riGroup := nova.RuleInfo{
+		ParentGroupId: group2.Id,
+		GroupId:       &group1.Id,
+	}
+	iprange := make(map[string]string)
+	iprange["cidr"] = riIngress.Cidr
+	rule1 := nova.SecurityGroupRule{
+		Id:            "1",
+		ParentGroupId: group1.Id,
+		FromPort:      &riIngress.FromPort,
+		ToPort:        &riIngress.ToPort,
+		IPProtocol:    &riIngress.IPProtocol,
+		IPRange:       iprange,
+	}
+	rule2 := nova.SecurityGroupRule{
+		Id:            "2",
+		ParentGroupId: group2.Id,
+		Group: nova.SecurityGroupRef{
+			Name:     group1.Name,
+			TenantId: s.service.TenantId,
+		},
+	}
+	ok := s.service.hasSecurityGroupRule(group1.Id, rule1.Id)
+	c.Assert(ok, gc.Equals, false)
+	ok = s.service.hasSecurityGroupRule(group2.Id, rule2.Id)
+	c.Assert(ok, gc.Equals, false)
+	var req struct {
+		Rule nova.RuleInfo `json:"security_group_rule"`
+	}
+	req.Rule = riIngress
+	var expected struct {
+		Rule nova.SecurityGroupRule `json:"security_group_rule"`
+	}
+	resp, err := s.jsonRequest("POST", "/os-security-group-rules", req, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Rule.Id, gc.Equals, rule1.Id)
+	c.Assert(expected.Rule.ParentGroupId, gc.Equals, rule1.ParentGroupId)
+	c.Assert(expected.Rule.Group, gc.Equals, nova.SecurityGroupRef{})
+	c.Assert(*expected.Rule.FromPort, gc.Equals, *rule1.FromPort)
+	c.Assert(*expected.Rule.ToPort, gc.Equals, *rule1.ToPort)
+	c.Assert(*expected.Rule.IPProtocol, gc.Equals, *rule1.IPProtocol)
+	c.Assert(expected.Rule.IPRange, gc.DeepEquals, rule1.IPRange)
+	defer s.service.removeSecurityGroupRule(rule1.Id)
+	req.Rule = riGroup
+	resp, err = s.jsonRequest("POST", "/os-security-group-rules", req, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Rule.Id, gc.Equals, rule2.Id)
+	c.Assert(expected.Rule.ParentGroupId, gc.Equals, rule2.ParentGroupId)
+	c.Assert(expected.Rule.Group, gc.DeepEquals, rule2.Group)
+	err = s.service.removeSecurityGroupRule(rule2.Id)
+	c.Assert(err, gc.IsNil)
+}
+
+func (s *NovaNeutronHTTPSSuite) TestDeleteSecurityGroupRule(c *gc.C) {
+	group1 := nova.SecurityGroup{Id: "1", Name: "src"}
+	group2 := nova.SecurityGroup{Id: "2", Name: "tgt"}
+	err := s.service.addSecurityGroup(group1)
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSecurityGroup(group1.Id)
+	err = s.service.addSecurityGroup(group2)
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeSecurityGroup(group2.Id)
+	riGroup := nova.RuleInfo{
+		ParentGroupId: group2.Id,
+		GroupId:       &group1.Id,
+	}
+	rule := nova.SecurityGroupRule{
+		Id:            "1",
+		ParentGroupId: group2.Id,
+		Group: nova.SecurityGroupRef{
+			Name:     group1.Name,
+			TenantId: group1.TenantId,
+		},
+	}
+	err = s.service.addSecurityGroupRule(rule.Id, riGroup)
+	c.Assert(err, gc.IsNil)
+	resp, err := s.authRequest("DELETE", "/os-security-group-rules/1", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusAccepted)
+	ok := s.service.hasSecurityGroupRule(group2.Id, rule.Id)
+	c.Assert(ok, gc.Equals, false)
+}
+
+func (s *NovaNeutronHTTPSSuite) TestAddServerSecurityGroup(c *gc.C) {
+	group := nova.SecurityGroup{Id: "1", Name: "group"}
 	err := s.service.addSecurityGroup(group)
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup(group.Id)
@@ -1030,20 +1042,20 @@ func (s *NovaNeutronHTTPSuite) TestAddServerSecurityGroup(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetServerSecurityGroups(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestGetServerSecurityGroups(c *gc.C) {
 	server := nova.ServerDetail{Id: "sr1"}
-	groups := []neutron.SecurityGroupV2{
+	groups := []nova.SecurityGroup{
 		{
 			Id:       "1",
 			Name:     "group1",
 			TenantId: s.service.TenantId,
-			Rules:    []neutron.SecurityGroupRuleV2{},
+			Rules:    []nova.SecurityGroupRule{},
 		},
 		{
 			Id:       "2",
 			Name:     "group2",
 			TenantId: s.service.TenantId,
-			Rules:    []neutron.SecurityGroupRuleV2{},
+			Rules:    []nova.SecurityGroupRule{},
 		},
 	}
 	srvGroups := s.service.allServerSecurityGroups(server.Id)
@@ -1060,19 +1072,17 @@ func (s *NovaNeutronHTTPSuite) TestGetServerSecurityGroups(c *gc.C) {
 		defer s.service.removeServerSecurityGroup(server.Id, group.Id)
 	}
 	srvGroups = s.service.allServerSecurityGroups(server.Id)
-	/*
-		var expected struct {
-			Groups []neutron.SecurityGroupV2 `json:"security_groups"`
-		}
-		resp, err := s.authRequest("GET", "v2.0"+neutron.ApiSecurityGroupsV2, nil, nil)
-		c.Assert(err, gc.IsNil)
-		assertJSON(c, resp, &expected)
-	*/
-	c.Assert(srvGroups, gc.DeepEquals, groups)
+	var expected struct {
+		Groups []nova.SecurityGroup `json:"security_groups"`
+	}
+	resp, err := s.authRequest("GET", "/servers/"+server.Id+"/os-security-groups", nil, nil)
+	c.Assert(err, gc.IsNil)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.Groups, gc.DeepEquals, groups)
 }
 
-func (s *NovaNeutronHTTPSuite) TestDeleteServerSecurityGroup(c *gc.C) {
-	group := neutron.SecurityGroupV2{Id: "1", Name: "group"}
+func (s *NovaNeutronHTTPSSuite) TestDeleteServerSecurityGroup(c *gc.C) {
+	group := nova.SecurityGroup{Id: "1", Name: "group"}
 	err := s.service.addSecurityGroup(group)
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup(group.Id)
@@ -1097,8 +1107,72 @@ func (s *NovaNeutronHTTPSuite) TestDeleteServerSecurityGroup(c *gc.C) {
 	c.Assert(ok, gc.Equals, false)
 }
 
-func (s *NovaNeutronHTTPSuite) TestAddServerFloatingIP(c *gc.C) {
-	fip := neutron.FloatingIPV2{Id: "1", IP: "1.2.3.4"}
+func (s *NovaNeutronHTTPSSuite) TestPostFloatingIP(c *gc.C) {
+	fip := nova.FloatingIP{Id: "1", IP: "10.0.0.1", Pool: "nova"}
+	c.Assert(s.service.allFloatingIPs(), gc.HasLen, 0)
+	var expected struct {
+		IP nova.FloatingIP `json:"floating_ip"`
+	}
+	resp, err := s.authRequest("POST", "/os-floating-ips", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.IP, gc.DeepEquals, fip)
+	err = s.service.removeFloatingIP(fip.Id)
+	c.Assert(err, gc.IsNil)
+}
+
+func (s *NovaNeutronHTTPSSuite) TestGetFloatingIPs(c *gc.C) {
+	c.Assert(s.service.allFloatingIPs(), gc.HasLen, 0)
+	var expected struct {
+		IPs []nova.FloatingIP `json:"floating_ips"`
+	}
+	resp, err := s.authRequest("GET", "/os-floating-ips", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	c.Assert(expected.IPs, gc.HasLen, 0)
+	fips := []nova.FloatingIP{
+		{Id: "1", IP: "1.2.3.4", Pool: "nova"},
+		{Id: "2", IP: "4.3.2.1", Pool: "nova"},
+	}
+	for _, fip := range fips {
+		err := s.service.addFloatingIP(fip)
+		defer s.service.removeFloatingIP(fip.Id)
+		c.Assert(err, gc.IsNil)
+	}
+	resp, err = s.authRequest("GET", "/os-floating-ips", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expected)
+	if expected.IPs[0].Id != fips[0].Id {
+		expected.IPs[0], expected.IPs[1] = expected.IPs[1], expected.IPs[0]
+	}
+	c.Assert(expected.IPs, gc.DeepEquals, fips)
+	var expectedIP struct {
+		IP nova.FloatingIP `json:"floating_ip"`
+	}
+	resp, err = s.authRequest("GET", "/os-floating-ips/1", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+	assertJSON(c, resp, &expectedIP)
+	c.Assert(expectedIP.IP, gc.DeepEquals, fips[0])
+}
+
+func (s *NovaNeutronHTTPSSuite) TestDeleteFloatingIP(c *gc.C) {
+	fip := nova.FloatingIP{Id: "1", IP: "10.0.0.1", Pool: "nova"}
+	err := s.service.addFloatingIP(fip)
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeFloatingIP(fip.Id)
+	resp, err := s.authRequest("DELETE", "/os-floating-ips/1", nil, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusAccepted)
+	_, err = s.service.floatingIP(fip.Id)
+	c.Assert(err, gc.NotNil)
+}
+
+func (s *NovaNeutronHTTPSSuite) TestAddServerFloatingIP(c *gc.C) {
+	fip := nova.FloatingIP{Id: "1", IP: "1.2.3.4"}
 	server := nova.ServerDetail{Id: "sr1"}
 	err := s.service.addFloatingIP(fip)
 	c.Assert(err, gc.IsNil)
@@ -1121,8 +1195,8 @@ func (s *NovaNeutronHTTPSuite) TestAddServerFloatingIP(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestRemoveServerFloatingIP(c *gc.C) {
-	fip := neutron.FloatingIPV2{Id: "1", IP: "1.2.3.4"}
+func (s *NovaNeutronHTTPSSuite) TestRemoveServerFloatingIP(c *gc.C) {
+	fip := nova.FloatingIP{Id: "1", IP: "1.2.3.4"}
 	server := nova.ServerDetail{Id: "sr1"}
 	err := s.service.addFloatingIP(fip)
 	c.Assert(err, gc.IsNil)
@@ -1146,7 +1220,7 @@ func (s *NovaNeutronHTTPSuite) TestRemoveServerFloatingIP(c *gc.C) {
 	c.Assert(s.service.hasServerFloatingIP(server.Id, fip.IP), gc.Equals, false)
 }
 
-func (s *NovaNeutronHTTPSuite) TestListAvailabilityZones(c *gc.C) {
+func (s *NovaNeutronHTTPSSuite) TestListAvailabilityZones(c *gc.C) {
 	resp, err := s.jsonRequest("GET", "/os-availability-zone", nil, nil)
 	c.Assert(err, gc.IsNil)
 	assertBody(c, resp, errNotFoundJSON)
@@ -1167,14 +1241,291 @@ func (s *NovaNeutronHTTPSuite) TestListAvailabilityZones(c *gc.C) {
 	c.Assert(expected.Zones, gc.DeepEquals, zones)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetSecurityGroups(c *gc.C) {
+func (s *NovaHTTPSSuite) SetUpSuite(c *gc.C) {
+	s.HTTPSuite.SetUpSuite(c)
+	identityDouble := identityservice.NewUserPass()
+	userInfo := identityDouble.AddUser("fred", "secret", "tenant")
+	s.token = userInfo.Token
+	c.Assert(s.Server.URL[:8], gc.Equals, "https://")
+	s.service = New(s.Server.URL, versionPath, userInfo.TenantId, region, identityDouble, nil)
+}
+
+func (s *NovaHTTPSSuite) TearDownSuite(c *gc.C) {
+	s.HTTPSuite.TearDownSuite(c)
+}
+
+func (s *NovaHTTPSSuite) SetUpTest(c *gc.C) {
+	s.HTTPSuite.SetUpTest(c)
+	s.service.SetupHTTP(s.Mux)
+}
+
+func (s *NovaHTTPSSuite) TearDownTest(c *gc.C) {
+	s.HTTPSuite.TearDownTest(c)
+}
+
+func (s *NovaHTTPSSuite) TestHasHTTPSServiceURL(c *gc.C) {
+	endpoints := s.service.Endpoints()
+	c.Assert(endpoints[0].PublicURL[:8], gc.Equals, "https://")
+}
+
+func (s *NovaNeutronHTTPSSuite) TestSetServerMetadata(c *gc.C) {
+	const serverId = "sr1"
+
+	err := s.service.addServer(nova.ServerDetail{Id: serverId})
+	c.Assert(err, gc.IsNil)
+	defer s.service.removeServer(serverId)
+	var req struct {
+		Metadata map[string]string `json:"metadata"`
+	}
+	req.Metadata = map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+	}
+	resp, err := s.jsonRequest("POST", "/servers/"+serverId+"/metadata", req, nil)
+	c.Assert(err, gc.IsNil)
+	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
+
+	server, err := s.service.server(serverId)
+	c.Assert(err, gc.IsNil)
+	c.Assert(server.Metadata, gc.DeepEquals, req.Metadata)
+}
+
+func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
+	var simpleTests = []SimpleTest{
+		{
+			unauth:  true,
+			method:  "GET",
+			url:     "/any",
+			headers: make(http.Header),
+			expect:  errUnauthorized,
+		},
+		{
+			unauth:  true,
+			method:  "POST",
+			url:     "/any",
+			headers: setHeader(authToken, "phony"),
+			expect:  errUnauthorized,
+		},
+		{
+			unauth:  true,
+			method:  "GET",
+			url:     "/any",
+			headers: setHeader(authToken, s.token),
+			expect:  errMultipleChoices,
+		},
+		{
+			unauth:  true,
+			method:  "POST",
+			url:     "/any/unknown/one",
+			headers: setHeader(authToken, s.token),
+			expect:  errMultipleChoices,
+		},
+/*
+		{
+			method: "POST",
+			url:    "/any/unknown/one",
+			expect: errNotFound,
+		},
+*/
+		{
+			unauth:  true,
+			method:  "GET",
+			url:     versionPath + "/phony_token",
+			headers: setHeader(authToken, s.token),
+			expect:  errBadRequest,
+		},
+		{
+			method: "GET",
+			url:    neutron.ApiSecurityGroupsV2 + "/42",
+			expect: errNotFoundJSONSG,
+		},
+		{
+			method: "POST",
+			url:    neutron.ApiSecurityGroupsV2,
+			expect: errBadRequest2,
+		},
+/*
+		{
+			method: "POST",
+			url:    neutron.ApiSecurityGroupsV2 + "/invalid",
+			expect: errNotFound,
+		},
+*/
+		{
+			method: "PUT",
+			url:    neutron.ApiSecurityGroupsV2,
+			expect: errNotFound,
+		},
+/*
+		{
+			method: "PUT",
+			url:    neutron.ApiSecurityGroupsV2 + "/invalid",
+			expect: errNotFoundJSONSG,
+		},
+*/
+		{
+			method: "DELETE",
+			url:    neutron.ApiSecurityGroupsV2,
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiSecurityGroupsV2 + "/42",
+			expect: errNotFoundJSONSG,
+		},
+		{
+			method: "GET",
+			url:    neutron.ApiSecurityGroupRulesV2,
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "GET",
+			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "GET",
+			url:    neutron.ApiSecurityGroupRulesV2 + "/42",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "POST",
+			url:    neutron.ApiSecurityGroupRulesV2,
+			expect: errBadRequest2,
+		},
+		{
+			method: "POST",
+			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
+			expect: errNotFound,
+		},
+/*
+		{
+			method: "PUT",
+			url:    neutron.ApiSecurityGroupRulesV2,
+			expect: errNotFound,
+		},
+*/
+		{
+			method: "PUT",
+			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiSecurityGroupRulesV2,
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiSecurityGroupRulesV2 + "/42",
+			expect: errNotFoundJSONSGR,
+		},
+		{
+			method: "GET",
+			url:    neutron.ApiFloatingIPsV2 + "/42",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "POST",
+			url:    neutron.ApiFloatingIPsV2 + "/invalid",
+			expect: errNotFound,
+		},
+/*
+		{
+			method: "PUT",
+			url:    neutron.ApiFloatingIPsV2,
+			expect: errNotFound,
+		},
+*/
+		{
+			method: "PUT",
+			url:    neutron.ApiFloatingIPsV2 + "/invalid",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiFloatingIPsV2,
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiFloatingIPsV2 + "/invalid",
+			expect: errNotFoundJSON,
+		},
+/*
+		{
+			method: "GET",
+			url:    neutron.ApiNetworksV2 + "/42",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "POST",
+			url:    neutron.ApiNetworksV2 + "/invalid",
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    neutron.ApiNetworksV2,
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    neutron.ApiNetworksV2 + "/invalid",
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiNetworksV2,
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiNetworksV2 + "/invalid",
+			expect: errNotFound,
+		},
+		{
+			method: "GET",
+			url:    neutron.ApiSubnetsV2 + "/42",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "POST",
+			url:    neutron.ApiSubnetsV2 + "/invalid",
+			expect: errNotFoundJSON,
+		},
+		{
+			method: "PUT",
+			url:    neutron.ApiSubnetsV2,
+			expect: errNotFound,
+		},
+		{
+			method: "PUT",
+			url:    neutron.ApiSubnetsV2 + "/invalid",
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiSubnetsV2,
+			expect: errNotFound,
+		},
+		{
+			method: "DELETE",
+			url:    neutron.ApiSubnetsV2 + "/invalid",
+			expect: errNotFound,
+		},
+*/
+	}
+	return simpleTests
+}
+
+func (s *NeutronHTTPSuite) TestGetSecurityGroups(c *gc.C) {
 	// There is always a default security group.
 	groups := s.service.allSecurityGroups()
 	c.Assert(groups, gc.HasLen, 1)
 	var expected struct {
 		Groups []neutron.SecurityGroupV2 `json:"security_groups"`
 	}
-	resp, err := s.authRequest("GET", "v2.0"+neutron.ApiSecurityGroupsV2, nil, nil)
+	resp, err := s.authRequest("GET", neutron.ApiSecurityGroupsV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
@@ -1198,7 +1549,7 @@ func (s *NovaNeutronHTTPSuite) TestGetSecurityGroups(c *gc.C) {
 		c.Assert(err, gc.IsNil)
 		defer s.service.removeSecurityGroup(group.Id)
 	}
-	resp, err = s.authRequest("GET", "v2.0"+neutron.ApiSecurityGroupsV2, nil, nil)
+	resp, err = s.authRequest("GET", neutron.ApiSecurityGroupsV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
@@ -1207,7 +1558,7 @@ func (s *NovaNeutronHTTPSuite) TestGetSecurityGroups(c *gc.C) {
 	var expectedGroup struct {
 		Group neutron.SecurityGroupV2 `json:"security_group"`
 	}
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiSecurityGroupsV2, "1")
+	url := fmt.Sprintf("%s/%s", neutron.ApiSecurityGroupsV2, "1")
 	resp, err = s.authRequest("GET", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
@@ -1215,8 +1566,8 @@ func (s *NovaNeutronHTTPSuite) TestGetSecurityGroups(c *gc.C) {
 	c.Assert(expectedGroup.Group, gc.DeepEquals, groups[0])
 }
 
-func (s *NovaNeutronHTTPSuite) TestAddSecurityGroup(c *gc.C) {
-	fmt.Printf("TestAddSecurityGroup(): called, %q\n", s.service)
+func (s *NeutronHTTPSuite) TestAddSecurityGroup(c *gc.C) {
+	//fmt.Printf("TestAddSecurityGroup(): called\n")
 	group := neutron.SecurityGroupV2{
 		Id:          "1",
 		Name:        "group 1",
@@ -1237,7 +1588,7 @@ func (s *NovaNeutronHTTPSuite) TestAddSecurityGroup(c *gc.C) {
 	var expected struct {
 		Group neutron.SecurityGroupV2 `json:"security_group"`
 	}
-	resp, err := s.jsonRequest("POST", "v2.0"+neutron.ApiSecurityGroupsV2, req, nil)
+	resp, err := s.jsonRequest("POST", neutron.ApiSecurityGroupsV2, req, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusCreated)
 	assertJSON(c, resp, &expected)
@@ -1246,14 +1597,14 @@ func (s *NovaNeutronHTTPSuite) TestAddSecurityGroup(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestDeleteSecurityGroup(c *gc.C) {
+func (s *NeutronHTTPSuite) TestDeleteSecurityGroup(c *gc.C) {
 	group := neutron.SecurityGroupV2{Id: "1", Name: "group 1"}
 	_, err := s.service.securityGroup(group.Id)
 	c.Assert(err, gc.NotNil)
 	err = s.service.addSecurityGroup(group)
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup(group.Id)
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiSecurityGroupsV2, "1")
+	url := fmt.Sprintf("%s/%s", neutron.ApiSecurityGroupsV2, "1")
 	resp, err := s.authRequest("DELETE", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusNoContent)
@@ -1261,7 +1612,7 @@ func (s *NovaNeutronHTTPSuite) TestDeleteSecurityGroup(c *gc.C) {
 	c.Assert(err, gc.NotNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
+func (s *NeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
 	group1 := neutron.SecurityGroupV2{Id: "1", Name: "src"}
 	group2 := neutron.SecurityGroupV2{Id: "2", Name: "tgt"}
 	err := s.service.addSecurityGroup(group1)
@@ -1311,7 +1662,7 @@ func (s *NovaNeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
 	var expected struct {
 		Rule neutron.SecurityGroupRuleV2 `json:"security_group_rule"`
 	}
-	resp, err := s.jsonRequest("POST", "v2.0"+neutron.ApiSecurityGroupRulesV2, req, nil)
+	resp, err := s.jsonRequest("POST", neutron.ApiSecurityGroupRulesV2, req, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusCreated)
 	assertJSON(c, resp, &expected)
@@ -1323,7 +1674,7 @@ func (s *NovaNeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
 	c.Assert(expected.Rule.Direction, gc.Equals, rule1.Direction)
 	defer s.service.removeSecurityGroupRule(rule1.Id)
 	req.Rule = riEgress
-	resp, err = s.jsonRequest("POST", "v2.0"+neutron.ApiSecurityGroupRulesV2, req, nil)
+	resp, err = s.jsonRequest("POST", neutron.ApiSecurityGroupRulesV2, req, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusCreated)
 	assertJSON(c, resp, &expected)
@@ -1333,7 +1684,7 @@ func (s *NovaNeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestDeleteSecurityGroupRule(c *gc.C) {
+func (s *NeutronHTTPSuite) TestDeleteSecurityGroupRule(c *gc.C) {
 	group1 := neutron.SecurityGroupV2{Id: "1", Name: "src"}
 	group2 := neutron.SecurityGroupV2{Id: "2", Name: "tgt"}
 	err := s.service.addSecurityGroup(group1)
@@ -1353,7 +1704,7 @@ func (s *NovaNeutronHTTPSuite) TestDeleteSecurityGroupRule(c *gc.C) {
 	}
 	err = s.service.addSecurityGroupRule(rule.Id, riGroup)
 	c.Assert(err, gc.IsNil)
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiSecurityGroupRulesV2, "1")
+	url := fmt.Sprintf("%s/%s", neutron.ApiSecurityGroupRulesV2, "1")
 	resp, err := s.authRequest("DELETE", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusNoContent)
@@ -1361,13 +1712,13 @@ func (s *NovaNeutronHTTPSuite) TestDeleteSecurityGroupRule(c *gc.C) {
 	c.Assert(ok, gc.Equals, false)
 }
 
-func (s *NovaNeutronHTTPSuite) TestPostFloatingIPV2(c *gc.C) {
+func (s *NeutronHTTPSuite) TestPostFloatingIPV2(c *gc.C) {
 	fip := neutron.FloatingIPV2{Id: "1", IP: "10.0.0.1", FloatingNetworkId: "neutron"}
 	c.Assert(s.service.allFloatingIPs(), gc.HasLen, 0)
 	var expected struct {
 		IP neutron.FloatingIPV2 `json:"floating_ip"`
 	}
-	resp, err := s.authRequest("POST", "v2.0"+neutron.ApiFloatingIPsV2, nil, nil)
+	resp, err := s.authRequest("POST", neutron.ApiFloatingIPsV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusCreated)
 	assertJSON(c, resp, &expected)
@@ -1376,12 +1727,12 @@ func (s *NovaNeutronHTTPSuite) TestPostFloatingIPV2(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetFloatingIPs(c *gc.C) {
+func (s *NeutronHTTPSuite) TestGetFloatingIPs(c *gc.C) {
 	c.Assert(s.service.allFloatingIPs(), gc.HasLen, 0)
 	var expected struct {
 		IPs []neutron.FloatingIPV2 `json:"floating_ips"`
 	}
-	resp, err := s.authRequest("GET", "v2.0"+neutron.ApiFloatingIPsV2, nil, nil)
+	resp, err := s.authRequest("GET", neutron.ApiFloatingIPsV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
@@ -1395,7 +1746,7 @@ func (s *NovaNeutronHTTPSuite) TestGetFloatingIPs(c *gc.C) {
 		defer s.service.removeFloatingIP(fip.Id)
 		c.Assert(err, gc.IsNil)
 	}
-	resp, err = s.authRequest("GET", "v2.0"+neutron.ApiFloatingIPsV2, nil, nil)
+	resp, err = s.authRequest("GET", neutron.ApiFloatingIPsV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
@@ -1406,7 +1757,7 @@ func (s *NovaNeutronHTTPSuite) TestGetFloatingIPs(c *gc.C) {
 	var expectedIP struct {
 		IP neutron.FloatingIPV2 `json:"floating_ip"`
 	}
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiFloatingIPsV2, "1")
+	url := fmt.Sprintf("%s/%s", neutron.ApiFloatingIPsV2, "1")
 	resp, err = s.authRequest("GET", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
@@ -1414,12 +1765,12 @@ func (s *NovaNeutronHTTPSuite) TestGetFloatingIPs(c *gc.C) {
 	c.Assert(expectedIP.IP, gc.DeepEquals, fips[0])
 }
 
-func (s *NovaNeutronHTTPSuite) TestDeleteFloatingIP(c *gc.C) {
+func (s *NeutronHTTPSuite) TestDeleteFloatingIP(c *gc.C) {
 	fip := neutron.FloatingIPV2{Id: "1", IP: "10.0.0.1"}
 	err := s.service.addFloatingIP(fip)
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeFloatingIP(fip.Id)
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiFloatingIPsV2, "1")
+	url := fmt.Sprintf("%s/%s", neutron.ApiFloatingIPsV2, "1")
 	resp, err := s.authRequest("DELETE", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusNoContent)
@@ -1427,14 +1778,14 @@ func (s *NovaNeutronHTTPSuite) TestDeleteFloatingIP(c *gc.C) {
 	c.Assert(err, gc.NotNil)
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetNetworks(c *gc.C) {
+func (s *NeutronHTTPSuite) TestGetNetworks(c *gc.C) {
 	// There are always 2 networks
 	networks := s.service.allNetworks()
 	c.Assert(networks, gc.HasLen, 2)
 	var expected struct {
 		Networks []neutron.NetworkV2 `json:"networks"`
 	}
-	resp, err := s.authRequest("GET", "v2.0"+neutron.ApiNetworksV2, nil, nil)
+	resp, err := s.authRequest("GET", neutron.ApiNetworksV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
@@ -1443,7 +1794,7 @@ func (s *NovaNeutronHTTPSuite) TestGetNetworks(c *gc.C) {
 	var expectedNetwork struct {
 		Network neutron.NetworkV2 `json:"network"`
 	}
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiNetworksV2, networks[0].Id)
+	url := fmt.Sprintf("%s/%s", neutron.ApiNetworksV2, networks[0].Id)
 	resp, err = s.authRequest("GET", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
@@ -1453,14 +1804,14 @@ func (s *NovaNeutronHTTPSuite) TestGetNetworks(c *gc.C) {
 	c.Assert(expectedNetwork.Network, gc.DeepEquals, networks[0])
 }
 
-func (s *NovaNeutronHTTPSuite) TestGetSubnets(c *gc.C) {
+func (s *NeutronHTTPSuite) TestGetSubnets(c *gc.C) {
 	// There are always 2 subnets
 	subnets := s.service.allSubnets()
 	c.Assert(subnets, gc.HasLen, 2)
 	var expected struct {
 		Subnets []neutron.SubnetV2 `json:"subnets"`
 	}
-	resp, err := s.authRequest("GET", "v2.0"+neutron.ApiSubnetsV2, nil, nil)
+	resp, err := s.authRequest("GET", neutron.ApiSubnetsV2, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
@@ -1468,7 +1819,7 @@ func (s *NovaNeutronHTTPSuite) TestGetSubnets(c *gc.C) {
 	var expectedSubnet struct {
 		Subnet neutron.SubnetV2 `json:"subnet"`
 	}
-	url := fmt.Sprintf("%s/%s", "v2.0"+neutron.ApiSubnetsV2, subnets[0].Id)
+	url := fmt.Sprintf("%s/%s", neutron.ApiSubnetsV2, subnets[0].Id)
 	resp, err = s.authRequest("GET", url, nil, nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
@@ -1476,51 +1827,3 @@ func (s *NovaNeutronHTTPSuite) TestGetSubnets(c *gc.C) {
 	c.Assert(expectedSubnet.Subnet, gc.DeepEquals, subnets[0])
 }
 
-func (s *NovaNeutronHTTPSSuite) SetUpSuite(c *gc.C) {
-	s.HTTPSuite.SetUpSuite(c)
-	identityDouble := identityservice.NewUserPass()
-	userInfo := identityDouble.AddUser("fred", "secret", "tenant")
-	s.token = userInfo.Token
-	c.Assert(s.Server.URL[:8], gc.Equals, "https://")
-	s.service = New(s.Server.URL, versionPath, userInfo.TenantId, region, identityDouble, nil)
-}
-
-func (s *NovaNeutronHTTPSSuite) TearDownSuite(c *gc.C) {
-	s.HTTPSuite.TearDownSuite(c)
-}
-
-func (s *NovaNeutronHTTPSSuite) SetUpTest(c *gc.C) {
-	s.HTTPSuite.SetUpTest(c)
-	s.service.SetupHTTP(s.Mux)
-}
-
-func (s *NovaNeutronHTTPSSuite) TearDownTest(c *gc.C) {
-	s.HTTPSuite.TearDownTest(c)
-}
-
-func (s *NovaNeutronHTTPSSuite) TestHasHTTPSServiceURL(c *gc.C) {
-	endpoints := s.service.Endpoints()
-	c.Assert(endpoints[0].PublicURL[:8], gc.Equals, "https://")
-}
-
-func (s *NovaNeutronHTTPSuite) TestSetServerMetadata(c *gc.C) {
-	const serverId = "sr1"
-
-	err := s.service.addServer(nova.ServerDetail{Id: serverId})
-	c.Assert(err, gc.IsNil)
-	defer s.service.removeServer(serverId)
-	var req struct {
-		Metadata map[string]string `json:"metadata"`
-	}
-	req.Metadata = map[string]string{
-		"k1": "v1",
-		"k2": "v2",
-	}
-	resp, err := s.jsonRequest("POST", "/servers/"+serverId+"/metadata", req, nil)
-	c.Assert(err, gc.IsNil)
-	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
-
-	server, err := s.service.server(serverId)
-	c.Assert(err, gc.IsNil)
-	c.Assert(server.Metadata, gc.DeepEquals, req.Metadata)
-}

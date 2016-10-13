@@ -140,11 +140,11 @@ func (s *localLiveSuite) TestInexactRegionMatch(c *gc.C) {
 	}
 	cl := client.NewClient(s.cred, s.authMode, nil)
 	err := cl.Authenticate()
-	serviceURL, err := cl.MakeServiceURL("compute", "v2", []string{})
+	serviceURL, err := cl.MakeServiceURL("compute", []string{})
 	c.Assert(err, gc.IsNil)
 	_, err = url.Parse(serviceURL)
 	c.Assert(err, gc.IsNil)
-	serviceURL, err = cl.MakeServiceURL("object-store", "", []string{})
+	serviceURL, err = cl.MakeServiceURL("object-store", []string{})
 	c.Assert(err, gc.IsNil)
 	_, err = url.Parse(serviceURL)
 	c.Assert(err, gc.IsNil)
@@ -224,21 +224,21 @@ func (s *localLiveSuite) assertAuthenticationSuccess(c *gc.C) client.Client {
 
 func (s *localLiveSuite) TestAuthenticationSuccess(c *gc.C) {
 	cl := s.assertAuthenticationSuccess(c)
-	URL, err := cl.MakeServiceURL("compute", "v2", nil)
+	URL, err := cl.MakeServiceURL("compute", nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(URL, gc.Equals, "http://localhost")
 }
 
 func (s *localLiveSuite) TestMakeServiceURL(c *gc.C) {
 	cl := s.assertAuthenticationSuccess(c)
-	URL, err := cl.MakeServiceURL("compute", "v2", []string{"foo"})
+	URL, err := cl.MakeServiceURL("compute", []string{"foo"})
 	c.Assert(err, gc.IsNil)
 	c.Assert(URL, gc.Equals, "http://localhost/foo")
 }
 
 func (s *localLiveSuite) TestMakeServiceURLRetainsTrailingSlash(c *gc.C) {
 	cl := s.assertAuthenticationSuccess(c)
-	URL, err := cl.MakeServiceURL("compute", "v2", []string{"foo", "bar/"})
+	URL, err := cl.MakeServiceURL("compute", []string{"foo", "bar/"})
 	c.Assert(err, gc.IsNil)
 	c.Assert(URL, gc.Equals, "http://localhost/foo/bar/")
 }
@@ -248,7 +248,7 @@ func checkAuthentication(cl client.AuthenticatingClient) error {
 	if err != nil {
 		return err
 	}
-	URL, err := cl.MakeServiceURL("compute", "v2", nil)
+	URL, err := cl.MakeServiceURL("compute", nil)
 	if err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func (s *localHTTPSSuite) TestNonValidatingClientAcceptsSelfSigned(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 
 	// Requests into this client should be https:// URLs
-	swiftURL, err := cl.MakeServiceURL("object-store", "", []string{"test_container"})
+	swiftURL, err := cl.MakeServiceURL("object-store", []string{"test_container"})
 	c.Assert(err, gc.IsNil)
 	c.Assert(swiftURL[:8], gc.Equals, "https://")
 	// We use swiftClient.CreateContainer to test a Binary request
@@ -432,7 +432,7 @@ func (s *localHTTPSSuite) setupPublicContainer(c *gc.C) string {
 	err := authSwift.CreateContainer("test_container", swift.PublicRead)
 	c.Assert(err, gc.IsNil)
 
-	baseURL, err := authClient.MakeServiceURL("object-store", "", nil)
+	baseURL, err := authClient.MakeServiceURL("object-store", nil)
 	c.Assert(err, gc.IsNil)
 	c.Assert(baseURL[:8], gc.Equals, "https://")
 	return baseURL

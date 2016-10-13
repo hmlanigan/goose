@@ -55,10 +55,10 @@ func (s *LiveTests) TestAuthenticate(c *gc.C) {
 	c.Assert(cl.IsAuthenticated(), gc.Equals, true)
 
 	// Check service endpoints are discovered
-	url, err := cl.MakeServiceURL("compute", "v2", nil)
+	url, err := cl.MakeServiceURL("compute", nil)
 	c.Check(err, gc.IsNil)
 	c.Check(url, gc.NotNil)
-	url, err = cl.MakeServiceURL("object-store", "", nil)
+	url, err = cl.MakeServiceURL("object-store", nil)
 	c.Check(err, gc.IsNil)
 	c.Check(url, gc.NotNil)
 }

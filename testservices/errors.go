@@ -175,3 +175,4 @@ func NewSubnetNotFoundError(subnet string) *ServerError {
 func NewSubnetAlreadyExistsError(id string) *ServerError {
 	return serverErrorf(409, "A subnet with id %q already exists", id)
 }
+
