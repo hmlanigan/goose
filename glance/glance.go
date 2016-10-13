@@ -16,7 +16,7 @@ import (
 const (
 	apiImages       = "/images"
 	apiImagesDetail = "/images/detail"
-	//apiImagesV2     = "/v2/images"
+	apiImagesV2     = "/v2/images"
 )
 
 // Client provides a means to access the OpenStack Image Service.
@@ -143,7 +143,7 @@ func (c *Client) ListImagesV2() ([]ImageDetailV2, error) {
 		Images []ImageDetailV2
 	}
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "image", "v2", apiImages, &requestData)
+	err := c.client.SendRequest(client.GET, "image", apiImagesV2, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get list of image details (v2)")
 	}
@@ -153,9 +153,9 @@ func (c *Client) ListImagesV2() ([]ImageDetailV2, error) {
 // GetImageDetailV2 lists details of the specified image, uses API v2.0
 func (c *Client) GetImageDetailV2(imageId string) (*ImageDetailV2, error) {
 	var resp ImageDetailV2
-	url := fmt.Sprintf("%s/%s", apiImages, imageId)
+	url := fmt.Sprintf("%s/%s", apiImagesV2, imageId)
 	requestData := goosehttp.RequestData{RespValue: &resp}
-	err := c.client.SendRequest(client.GET, "image", "v2", url, &requestData)
+	err := c.client.SendRequest(client.GET, "image", url, &requestData)
 	if err != nil {
 		return nil, errors.Newf(err, "failed to get details of imageId (v2): %s", imageId)
 	}
