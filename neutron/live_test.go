@@ -1,17 +1,12 @@
 package neutron_test
 
 import (
-	//"fmt"
+	"fmt"
 	gc "gopkg.in/check.v1"
 
 	"gopkg.in/goose.v1/client"
 	"gopkg.in/goose.v1/identity"
 	"gopkg.in/goose.v1/neutron"
-)
-
-const (
-	// A made up name we use for the test server instance.
-	testImageName = "neutron_test_server"
 )
 
 func registerOpenStackTests(cred *identity.Credentials) {
@@ -48,6 +43,7 @@ func (s *LiveTests) TearDownTest(c *gc.C) {
 func (s *LiveTests) TestFloatingIPsV2(c *gc.C) {
 	networks, err := s.neutron.ListNetworksV2()
 	c.Assert(err, gc.IsNil)
+	fmt.Printf("TestFloatingIPsV2(): found networks %+v\n", networks)
 	var netId string
 	for _, net := range networks {
 		if net.External == true {
@@ -58,9 +54,11 @@ func (s *LiveTests) TestFloatingIPsV2(c *gc.C) {
 	if netId == "" {
 		c.Errorf("no valid network to create floating IP")
 	}
+	fmt.Printf("TestFloatingIPsV2(): use network %+v\n", netId)
 	c.Assert(netId, gc.Not(gc.Equals), "")
 	ip, err := s.neutron.AllocateFloatingIPV2(netId)
 	c.Assert(err, gc.IsNil)
+	fmt.Printf("TestFloatingIPsV2(): allocated %+v\n", ip)
 	c.Assert(ip, gc.Not(gc.IsNil))
 	c.Check(ip.IP, gc.Not(gc.Equals), "")
 	c.Check(ip.FixedIP, gc.Equals, "")

@@ -9,10 +9,12 @@ import (
 
 	"gopkg.in/goose.v1/nova"
 	"gopkg.in/goose.v1/testservices/hook"
+	"gopkg.in/goose.v1/testservices/neutronmodel"
 )
 
 type NovaSuite struct {
-	service *Nova
+	service              *Nova
+	useNeutronNetworking bool
 }
 
 const (
@@ -21,10 +23,18 @@ const (
 	region      = "region"
 )
 
-var _ = gc.Suite(&NovaSuite{})
+var _ = gc.Suite(&NovaSuite{useNeutronNetworking: true})
+
+var _ = gc.Suite(&NovaSuite{useNeutronNetworking: false})
 
 func (s *NovaSuite) SetUpSuite(c *gc.C) {
 	s.service = New(hostname, versionPath, "tenant", region, nil, nil)
+	if s.useNeutronNetworking {
+		c.Logf("Nova Service using Neutron Networking")
+		s.service.AddNeutronModel(neutronmodel.New())
+	} else {
+		c.Logf("Nova Service using Nova Networking")
+	}
 }
 
 func (s *NovaSuite) ensureNoFlavor(c *gc.C, flavor nova.FlavorDetail) {
@@ -572,12 +582,18 @@ func (s *NovaSuite) TestGetServerByName(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddRemoveSecurityGroup(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1"}
 	s.createGroup(c, group)
 	s.deleteGroup(c, group)
 }
 
 func (s *NovaSuite) TestAddSecurityGroupWithRules(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{
 		Id:       "1",
 		Name:     "test",
@@ -594,6 +610,9 @@ func (s *NovaSuite) TestAddSecurityGroupWithRules(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddSecurityGroupTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1", Name: "test"}
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -602,6 +621,9 @@ func (s *NovaSuite) TestAddSecurityGroupTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestRemoveSecurityGroupTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1", Name: "test"}
 	s.createGroup(c, group)
 	s.deleteGroup(c, group)
@@ -610,6 +632,9 @@ func (s *NovaSuite) TestRemoveSecurityGroupTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAllSecurityGroups(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	groups := s.service.allSecurityGroups()
 	// There is always a default security group.
 	c.Assert(groups, gc.HasLen, 1)
@@ -637,6 +662,9 @@ func (s *NovaSuite) TestAllSecurityGroups(c *gc.C) {
 }
 
 func (s *NovaSuite) TestGetSecurityGroup(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{
 		Id:          "42",
 		TenantId:    s.service.TenantId,
@@ -651,6 +679,9 @@ func (s *NovaSuite) TestGetSecurityGroup(c *gc.C) {
 }
 
 func (s *NovaSuite) TestGetSecurityGroupByName(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{
 		Id:       "1",
 		Name:     "test",
@@ -668,6 +699,9 @@ func (s *NovaSuite) TestGetSecurityGroupByName(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddHasRemoveSecurityGroupRule(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1"}
 	ri := nova.RuleInfo{ParentGroupId: group.Id, GroupId: &group.Id}
 	rule := nova.SecurityGroupRule{Id: "10", ParentGroupId: group.Id}
@@ -691,6 +725,9 @@ func (s *NovaSuite) TestAddHasRemoveSecurityGroupRule(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddGetIngressSecurityGroupRule(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1"}
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -725,6 +762,9 @@ func (s *NovaSuite) TestAddGetIngressSecurityGroupRule(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddGetGroupSecurityGroupRule(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	srcGroup := nova.SecurityGroup{Id: "1", Name: "source", TenantId: s.service.TenantId}
 	tgtGroup := nova.SecurityGroup{Id: "2", Name: "target"}
 	s.createGroup(c, srcGroup)
@@ -764,6 +804,9 @@ func (s *NovaSuite) TestAddGetGroupSecurityGroupRule(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddSecurityGroupRuleTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1"}
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -778,6 +821,9 @@ func (s *NovaSuite) TestAddSecurityGroupRuleTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddSecurityGroupRuleToParentTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{
 		Id: "1",
 		Rules: []nova.SecurityGroupRule{
@@ -793,6 +839,9 @@ func (s *NovaSuite) TestAddSecurityGroupRuleToParentTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddSecurityGroupRuleWithInvalidParentFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	invalidGroup := nova.SecurityGroup{Id: "1"}
 	s.ensureNoGroup(c, invalidGroup)
 	ri := nova.RuleInfo{ParentGroupId: invalidGroup.Id}
@@ -803,6 +852,9 @@ func (s *NovaSuite) TestAddSecurityGroupRuleWithInvalidParentFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddGroupSecurityGroupRuleWithInvalidSourceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1"}
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -818,6 +870,9 @@ func (s *NovaSuite) TestAddGroupSecurityGroupRuleWithInvalidSourceFails(c *gc.C)
 }
 
 func (s *NovaSuite) TestAddSecurityGroupRuleUpdatesParent(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{
 		Id:       "1",
 		Name:     "test",
@@ -842,6 +897,9 @@ func (s *NovaSuite) TestAddSecurityGroupRuleUpdatesParent(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddSecurityGroupRuleKeepsNegativePort(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{
 		Id:       "1",
 		Name:     "test",
@@ -874,6 +932,9 @@ func (s *NovaSuite) TestAddSecurityGroupRuleKeepsNegativePort(c *gc.C) {
 }
 
 func (s *NovaSuite) TestRemoveSecurityGroupRuleTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	group := nova.SecurityGroup{Id: "1"}
 	s.createGroup(c, group)
 	defer s.deleteGroup(c, group)
@@ -1032,6 +1093,9 @@ func (s *NovaSuite) TestRemoveServerSecurityGroupTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddHasRemoveFloatingIP(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	ip := nova.FloatingIP{Id: "1", IP: "1.2.3.4"}
 	s.ensureNoIP(c, ip)
 	ok := s.service.hasFloatingIP(ip.IP)
@@ -1047,6 +1111,9 @@ func (s *NovaSuite) TestAddHasRemoveFloatingIP(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAddFloatingIPTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	ip := nova.FloatingIP{Id: "1"}
 	s.createIP(c, ip)
 	defer s.deleteIP(c, ip)
@@ -1055,6 +1122,9 @@ func (s *NovaSuite) TestAddFloatingIPTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestRemoveFloatingIPTwiceFails(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	ip := nova.FloatingIP{Id: "1"}
 	s.createIP(c, ip)
 	s.deleteIP(c, ip)
@@ -1063,6 +1133,9 @@ func (s *NovaSuite) TestRemoveFloatingIPTwiceFails(c *gc.C) {
 }
 
 func (s *NovaSuite) TestAllFloatingIPs(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	fips := s.service.allFloatingIPs()
 	c.Assert(fips, gc.HasLen, 0)
 	fips = []nova.FloatingIP{
@@ -1082,6 +1155,9 @@ func (s *NovaSuite) TestAllFloatingIPs(c *gc.C) {
 }
 
 func (s *NovaSuite) TestGetFloatingIP(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	inst := "sr1"
 	fixedIP := "4.3.2.1"
 	fip := nova.FloatingIP{
@@ -1098,6 +1174,9 @@ func (s *NovaSuite) TestGetFloatingIP(c *gc.C) {
 }
 
 func (s *NovaSuite) TestGetFloatingIPByAddr(c *gc.C) {
+	if s.service.useNeutronNetworking {
+		c.Skip("skipped in novaservice when using Neutron Model")
+	}
 	fip := nova.FloatingIP{Id: "1", IP: "1.2.3.4"}
 	s.ensureNoIP(c, fip)
 	ip, err := s.service.floatingIPByAddr(fip.IP)

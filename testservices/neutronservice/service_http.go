@@ -13,13 +13,19 @@ import (
 	"strconv"
 	"strings"
 
-	//"gopkg.in/goose.v1/errors"
 	"gopkg.in/goose.v1/neutron"
 	"gopkg.in/goose.v1/testservices"
 	"gopkg.in/goose.v1/testservices/identityservice"
 )
 
-const authToken = "X-Auth-Token"
+const (
+	authToken               = "X-Auth-Token"
+	apiFloatingIPsV2        = "/v2.0/" + neutron.ApiFloatingIPsV2
+	apiNetworksV2           = "/v2.0/" + neutron.ApiNetworksV2
+	apiSubnetsV2            = "/v2.0/" + neutron.ApiSubnetsV2
+	apiSecurityGroupsV2     = "/v2.0/" + neutron.ApiSecurityGroupsV2
+	apiSecurityGroupRulesV2 = "/v2.0/" + neutron.ApiSecurityGroupRulesV2
+)
 
 // errorResponse defines a single HTTP error response.
 type errorResponse struct {
@@ -142,7 +148,7 @@ The resource could not be found.
 	}
 	errNoVersion = &errorResponse{
 		http.StatusOK,
-		`{"versions": [{"status": "CURRENT", "id": "v2.0", "links": [{"href": "$ENDPOINT$/v2.0", "rel": "self"}]}]}`,
+		`{"versions": [{"status": "CURRENT", "id": "v2.0", "links": [{"href": "v2.0", "rel": "self"}]}]}`,
 		"application/json",
 		"no version specified in URL",
 		nil,
@@ -154,7 +160,7 @@ The resource could not be found.
 			`:33:21Z", "media-types": [{"base": "application/xml", "type": ` +
 			`"application/vnd.openstack.compute+xml;version=2"}, {"base": ` +
 			`"application/json", "type": "application/vnd.openstack.compute` +
-			`+json;version=2"}], "id": "v2.0", "links": [{"href": "$ENDPOINT$"` +
+			`+json;version=2"}], "id": "v2.0", "links": [{"href": "v2.0"` +
 			`, "rel": "self"}, {"href": "http://docs.openstack.org/api/openstack` +
 			`-compute/1.1/os-compute-devguide-1.1.pdf", "type": "application/pdf` +
 			`", "rel": "describedby"}, {"href": "http://docs.openstack.org/api/` +
@@ -215,7 +221,7 @@ func (e *errorResponse) requestBody(r *http.Request) []byte {
 	body := e.body
 	if body != "" {
 		if e.neutron != nil {
-			body = strings.Replace(body, "$ENDPOINT$", e.neutron.endpointURL("/"), -1)
+			body = strings.Replace(body, "$ENDPOINT$", e.neutron.endpointURL(true, "/"), -1)
 		}
 		body = strings.Replace(body, "$URL$", url, -1)
 		body = strings.Replace(body, "$ERROR$", e.Error(), -1)
@@ -257,7 +263,6 @@ func userInfo(i identityservice.IdentityService, r *http.Request) (*identityserv
 
 func (h *neutronHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	//fmt.Printf("\nServeHTTP(): request = %q\n\n", r)
 	// handle invalid X-Auth-Token header
 	_, err := userInfo(h.n.IdentityService, r)
 	if err != nil {
@@ -323,7 +328,6 @@ func (n *Neutron) handleRoot(w http.ResponseWriter, r *http.Request) error {
 	if r.URL.Path == "/" {
 		return errNoVersion
 	}
-	fmt.Printf("handleRoot(): returning errMultipleChoices\n")
 	return errMultipleChoices
 }
 
@@ -346,8 +350,7 @@ func newUUID() (string, error) {
 // If there was no group id specified in the path, it returns errNoGroupId
 func (n *Neutron) processGroupId(w http.ResponseWriter, r *http.Request) (*neutron.SecurityGroupV2, error) {
 	groupId := path.Base(r.URL.Path)
-	apiFunc := path.Base(neutron.ApiSecurityGroupsV2)
-	//fmt.Printf("processGroupId(): %s maybe equal %s\n", groupId, apiFunc)
+	apiFunc := path.Base(apiSecurityGroupsV2)
 	if groupId != apiFunc {
 		group, err := n.securityGroup(groupId)
 		if err != nil {
@@ -360,12 +363,9 @@ func (n *Neutron) processGroupId(w http.ResponseWriter, r *http.Request) (*neutr
 
 // handleSecurityGroups handles the /v2.0/security-groups HTTP API.
 func (n *Neutron) handleSecurityGroups(w http.ResponseWriter, r *http.Request) error {
-	//fmt.Printf("handleSecurityGroups(): r.Method = %s\n", r.Method)
-	//fmt.Printf("handleSecurityGroups(): r.URL = %s\n", r.URL)
 	switch r.Method {
 	case "GET":
 		group, err := n.processGroupId(w, r)
-		//fmt.Printf("handleSecurityGroups(GET): %s; %s\n", err, group)
 		if err == errNoGroupId {
 			groups := n.allSecurityGroups()
 			if len(groups) == 0 {
@@ -508,7 +508,7 @@ func (n *Neutron) handleSecurityGroupRules(w http.ResponseWriter, r *http.Reques
 		*/
 	case "POST":
 		ruleId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiSecurityGroupRulesV2)
+		apiFunc := path.Base(apiSecurityGroupRulesV2)
 		if ruleId != apiFunc {
 			return errNotFound
 		}
@@ -560,13 +560,13 @@ func (n *Neutron) handleSecurityGroupRules(w http.ResponseWriter, r *http.Reques
 		resp.Rule = *rule
 		return sendJSON(http.StatusCreated, resp, w, r)
 	case "PUT":
-		if ruleId := path.Base(r.URL.Path); ruleId != neutron.ApiSecurityGroupRulesV2 {
+		if ruleId := path.Base(r.URL.Path); ruleId != apiSecurityGroupRulesV2 {
 			return errNotFoundJSON
 		}
 		return errNotFound
 	case "DELETE":
 		ruleId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiSecurityGroupRulesV2)
+		apiFunc := path.Base(apiSecurityGroupRulesV2)
 		if ruleId != apiFunc {
 			if _, err := n.securityGroupRule(ruleId); err != nil {
 				return errNotFoundJSONSGR
@@ -587,14 +587,14 @@ func (n *Neutron) handleFloatingIPs(w http.ResponseWriter, r *http.Request) erro
 	switch r.Method {
 	case "GET":
 		ipId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiFloatingIPsV2)
+		apiFunc := path.Base(apiFloatingIPsV2)
 		if ipId != apiFunc {
 			fip, err := n.floatingIP(ipId)
 			if err != nil {
 				return errNotFoundJSON
 			}
 			resp := struct {
-				IP neutron.FloatingIPV2 `json:"floating_ip"`
+				IP neutron.FloatingIPV2 `json:"floatingip"`
 			}{*fip}
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
@@ -603,35 +603,36 @@ func (n *Neutron) handleFloatingIPs(w http.ResponseWriter, r *http.Request) erro
 			fips = []neutron.FloatingIPV2{}
 		}
 		resp := struct {
-			IPs []neutron.FloatingIPV2 `json:"floating_ips"`
+			IPs []neutron.FloatingIPV2 `json:"floatingips"`
 		}{fips}
 		return sendJSON(http.StatusOK, resp, w, r)
 	case "POST":
 		ipId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiFloatingIPsV2)
+		apiFunc := path.Base(apiFloatingIPsV2)
 		if ipId != apiFunc {
 			return errNotFound
 		}
 		n.nextIPId++
 		addr := fmt.Sprintf("10.0.0.%d", n.nextIPId)
 		nextId := strconv.Itoa(n.nextIPId)
-		fip := neutron.FloatingIPV2{Id: nextId, IP: addr, FloatingNetworkId: "neutron"}
+		// HML: this should include the network passed in - and check for external
+		fip := neutron.FloatingIPV2{FixedIP: "", Id: nextId, IP: addr, FloatingNetworkId: "998"}
 		err := n.addFloatingIP(fip)
 		if err != nil {
 			return err
 		}
 		resp := struct {
-			IP neutron.FloatingIPV2 `json:"floating_ip"`
+			FloatingIPV2 neutron.FloatingIPV2 `json:"floatingip"`
 		}{fip}
 		return sendJSON(http.StatusCreated, resp, w, r)
 	case "PUT":
-		if ipId := path.Base(r.URL.Path); ipId != neutron.ApiFloatingIPsV2 {
+		if ipId := path.Base(r.URL.Path); ipId != apiFloatingIPsV2 {
 			return errNotFoundJSON
 		}
 		return errNotFound
 	case "DELETE":
 		ipId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiFloatingIPsV2)
+		apiFunc := path.Base(apiFloatingIPsV2)
 		if ipId != apiFunc {
 			if err := n.removeFloatingIP(ipId); err == nil {
 				writeResponse(w, http.StatusNoContent, nil)
@@ -649,7 +650,7 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
 		networkId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiNetworksV2)
+		apiFunc := path.Base(apiNetworksV2)
 		if networkId != apiFunc {
 			network, err := n.network(networkId)
 			if err != nil {
@@ -658,7 +659,6 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 			resp := struct {
 				Network neutron.NetworkV2 `json:"network"`
 			}{*network}
-		fmt.Printf("handleNetworks(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		nets := n.allNetworks()
@@ -668,7 +668,6 @@ func (n *Neutron) handleNetworks(w http.ResponseWriter, r *http.Request) error {
 		resp := struct {
 			Network []neutron.NetworkV2 `json:"networks"`
 		}{nets}
-		fmt.Printf("handleNetworks(): %q\n", resp)
 		return sendJSON(http.StatusOK, resp, w, r)
 	default:
 		return errNotFound
@@ -681,7 +680,7 @@ func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
 		subnetId := path.Base(r.URL.Path)
-		apiFunc := path.Base(neutron.ApiSubnetsV2)
+		apiFunc := path.Base(apiSubnetsV2)
 		if subnetId != apiFunc {
 			subnet, err := n.subnet(subnetId)
 			if err != nil {
@@ -690,7 +689,6 @@ func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 			resp := struct {
 				Subnet neutron.SubnetV2 `json:"subnet"`
 			}{*subnet}
-		fmt.Printf("handleSubnets(): %q\n", resp)
 			return sendJSON(http.StatusOK, resp, w, r)
 		}
 		subnets := n.allSubnets()
@@ -700,7 +698,6 @@ func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 		resp := struct {
 			Subnets []neutron.SubnetV2 `json:"subnets"`
 		}{subnets}
-		fmt.Printf("handleSubnets(): %q\n", resp)
 		return sendJSON(http.StatusOK, resp, w, r)
 	default:
 		return errNotFound
@@ -710,32 +707,26 @@ func (n *Neutron) handleSubnets(w http.ResponseWriter, r *http.Request) error {
 
 // SetupHTTP attaches all the needed handlers to provide the HTTP API.
 func (n *Neutron) SetupHTTP(mux *http.ServeMux) {
-	// /$v/security-groups/ matches /v2.0/security-groups/{security-group-id}
-	// /$v/security-groups matches /v2.0/security-groups
-	mux.Handle("/v2.0/security-groups/", n.handler((*Neutron).handleSecurityGroups))
-	mux.Handle("/v2.0/security-group-rules/", n.handler((*Neutron).handleSecurityGroupRules))
-	mux.Handle("/v2.0/floatingips/", n.handler((*Neutron).handleFloatingIPs))
-	mux.Handle("/v2.0/networks/", n.handler((*Neutron).handleNetworks))
-/*
 	handlers := map[string]http.Handler{
-		// "/":			n.handler((*Neutron).handleApiVersions,
-		// "/v2.0":			n.handler((*Neutron).handleApiVersions,
-		// "/v2.0/":	errBadRequest,
-		//"/v2.0/security-groups":       n.handler((*Neutron).handleSecurityGroups),
-		"/v2.0/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
-		//"/v2.0/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
-		"/v2.0/security-group-rules/": n.handler((*Neutron).handleSecurityGroupRules),
-		//"/v2.0/floatingips":           n.handler((*Neutron).handleFloatingIPs),
-		"/v2.0/floatingips/":          n.handler((*Neutron).handleFloatingIPs),
-		//"/v2.0/networks":              n.handler((*Neutron).handleNetworks),
-		"/v2.0/networks/":             n.handler((*Neutron).handleNetworks),
-		//"/v2.0/subnets":               n.handler((*Neutron).handleSubnets),
-		"/v2.0/subnets/":              n.handler((*Neutron).handleSubnets),
+		"/$v":                       errNoVersion,
+		"/$v/":                      errBadRequest,
+		"/$v/security-groups":       n.handler((*Neutron).handleSecurityGroups),
+		"/$v/security-groups/":      n.handler((*Neutron).handleSecurityGroups),
+		"/$v/security-group-rules":  n.handler((*Neutron).handleSecurityGroupRules),
+		"/$v/security-group-rules/": n.handler((*Neutron).handleSecurityGroupRules),
+		"/$v/floatingips":           n.handler((*Neutron).handleFloatingIPs),
+		"/$v/floatingips/":          n.handler((*Neutron).handleFloatingIPs),
+		"/$v/networks":              n.handler((*Neutron).handleNetworks),
+		"/$v/networks/":             n.handler((*Neutron).handleNetworks),
+		"/$v/subnets":               n.handler((*Neutron).handleSubnets),
+		"/$v/subnets/":              n.handler((*Neutron).handleSubnets),
 	}
 	for path, h := range handlers {
-		//path = strings.Replace(path, "$v", n.VersionPath, 1)
-		fmt.Printf("SetupHTTP(): mux.Handle(%s, %s)\n", path, h)
+		path = strings.Replace(path, "$v", n.VersionPath, 1)
 		mux.Handle(path, h)
 	}
-*/
+}
+
+func (n *Neutron) SetupRootHandler(mux *http.ServeMux) {
+	mux.Handle("/", n.handler((*Neutron).handleRoot))
 }

@@ -16,6 +16,7 @@ import (
 	"gopkg.in/goose.v1/neutron"
 	"gopkg.in/goose.v1/testing/httpsuite"
 	"gopkg.in/goose.v1/testservices/identityservice"
+	"gopkg.in/goose.v1/testservices/neutronmodel"
 )
 
 type NeutronHTTPSuite struct {
@@ -40,6 +41,7 @@ func (s *NeutronHTTPSuite) SetUpSuite(c *gc.C) {
 	userInfo := identityDouble.AddUser("fred", "secret", "tenant")
 	s.token = userInfo.Token
 	s.service = New(s.Server.URL, versionPath, userInfo.TenantId, region, identityDouble, nil)
+	s.service.AddNeutronModel(neutronmodel.New())
 }
 
 func (s *NeutronHTTPSuite) TearDownSuite(c *gc.C) {
@@ -107,9 +109,7 @@ func (s *NeutronHTTPSuite) authRequest(method, path string, body []byte, headers
 		headers = make(http.Header)
 	}
 	headers.Set(authToken, s.token)
-	url := s.service.endpointURL(path)
-	//url := s.service.endpointURL(false, path)
-	//fmt.Printf("authRequest(): url after= %s\n", url)
+	url := s.service.endpointURL(true, path)
 	return s.sendRequest(method, url, body, headers)
 }
 
@@ -170,13 +170,13 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			headers: setHeader(authToken, s.token),
 			expect:  errMultipleChoices,
 		},
-/*
-		{
-			method: "POST",
-			url:    "/any/unknown/one",
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "POST",
+				url:    "/any/unknown/one",
+				expect: errNotFound,
+			},
+		*/
 		{
 			unauth:  true,
 			method:  "GET",
@@ -194,25 +194,25 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiSecurityGroupsV2,
 			expect: errBadRequest2,
 		},
-/*
-		{
-			method: "POST",
-			url:    neutron.ApiSecurityGroupsV2 + "/invalid",
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "POST",
+				url:    neutron.ApiSecurityGroupsV2 + "/invalid",
+				expect: errNotFound,
+			},
+		*/
 		{
 			method: "PUT",
 			url:    neutron.ApiSecurityGroupsV2,
 			expect: errNotFound,
 		},
-/*
-		{
-			method: "PUT",
-			url:    neutron.ApiSecurityGroupsV2 + "/invalid",
-			expect: errNotFoundJSONSG,
-		},
-*/
+		/*
+			{
+				method: "PUT",
+				url:    neutron.ApiSecurityGroupsV2 + "/invalid",
+				expect: errNotFoundJSONSG,
+			},
+		*/
 		{
 			method: "DELETE",
 			url:    neutron.ApiSecurityGroupsV2,
@@ -248,13 +248,13 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
 			expect: errNotFound,
 		},
-/*
-		{
-			method: "PUT",
-			url:    neutron.ApiSecurityGroupRulesV2,
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "PUT",
+				url:    neutron.ApiSecurityGroupRulesV2,
+				expect: errNotFound,
+			},
+		*/
 		{
 			method: "PUT",
 			url:    neutron.ApiSecurityGroupRulesV2 + "/invalid",
@@ -280,13 +280,13 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiFloatingIPsV2 + "/invalid",
 			expect: errNotFound,
 		},
-/*
-		{
-			method: "PUT",
-			url:    neutron.ApiFloatingIPsV2,
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "PUT",
+				url:    neutron.ApiFloatingIPsV2,
+				expect: errNotFound,
+			},
+		*/
 		{
 			method: "PUT",
 			url:    neutron.ApiFloatingIPsV2 + "/invalid",
@@ -302,68 +302,68 @@ func (s *NeutronHTTPSuite) simpleTests() []SimpleTest {
 			url:    neutron.ApiFloatingIPsV2 + "/invalid",
 			expect: errNotFoundJSON,
 		},
-/*
-		{
-			method: "GET",
-			url:    neutron.ApiNetworksV2 + "/42",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "POST",
-			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiNetworksV2,
-			expect: errNotFound,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiNetworksV2,
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiNetworksV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "GET",
-			url:    neutron.ApiSubnetsV2 + "/42",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "POST",
-			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFoundJSON,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiSubnetsV2,
-			expect: errNotFound,
-		},
-		{
-			method: "PUT",
-			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiSubnetsV2,
-			expect: errNotFound,
-		},
-		{
-			method: "DELETE",
-			url:    neutron.ApiSubnetsV2 + "/invalid",
-			expect: errNotFound,
-		},
-*/
+		/*
+			{
+				method: "GET",
+				url:    neutron.ApiNetworksV2 + "/42",
+				expect: errNotFoundJSON,
+			},
+			{
+				method: "POST",
+				url:    neutron.ApiNetworksV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiNetworksV2,
+				expect: errNotFound,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiNetworksV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiNetworksV2,
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiNetworksV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "GET",
+				url:    neutron.ApiSubnetsV2 + "/42",
+				expect: errNotFoundJSON,
+			},
+			{
+				method: "POST",
+				url:    neutron.ApiSubnetsV2 + "/invalid",
+				expect: errNotFoundJSON,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiSubnetsV2,
+				expect: errNotFound,
+			},
+			{
+				method: "PUT",
+				url:    neutron.ApiSubnetsV2 + "/invalid",
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiSubnetsV2,
+				expect: errNotFound,
+			},
+			{
+				method: "DELETE",
+				url:    neutron.ApiSubnetsV2 + "/invalid",
+				expect: errNotFound,
+			},
+		*/
 	}
 	return simpleTests
 }
@@ -453,7 +453,6 @@ func (s *NeutronHTTPSuite) TestGetSecurityGroups(c *gc.C) {
 }
 
 func (s *NeutronHTTPSuite) TestAddSecurityGroup(c *gc.C) {
-	//fmt.Printf("TestAddSecurityGroup(): called\n")
 	group := neutron.SecurityGroupV2{
 		Id:          "1",
 		Name:        "group 1",
@@ -484,7 +483,7 @@ func (s *NeutronHTTPSuite) TestAddSecurityGroup(c *gc.C) {
 }
 
 func (s *NeutronHTTPSuite) TestDeleteSecurityGroup(c *gc.C) {
-	group := neutron.SecurityGroupV2{Id: "1", Name: "group 1"}
+	group := neutron.SecurityGroupV2{Id: "1", Name: "group 1", TenantId: s.service.TenantId}
 	_, err := s.service.securityGroup(group.Id)
 	c.Assert(err, gc.NotNil)
 	err = s.service.addSecurityGroup(group)
@@ -499,8 +498,8 @@ func (s *NeutronHTTPSuite) TestDeleteSecurityGroup(c *gc.C) {
 }
 
 func (s *NeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
-	group1 := neutron.SecurityGroupV2{Id: "1", Name: "src"}
-	group2 := neutron.SecurityGroupV2{Id: "2", Name: "tgt"}
+	group1 := neutron.SecurityGroupV2{Id: "1", Name: "src", TenantId: s.service.TenantId}
+	group2 := neutron.SecurityGroupV2{Id: "2", Name: "tgt", TenantId: s.service.TenantId}
 	err := s.service.addSecurityGroup(group1)
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup(group1.Id)
@@ -571,8 +570,8 @@ func (s *NeutronHTTPSuite) TestAddSecurityGroupRule(c *gc.C) {
 }
 
 func (s *NeutronHTTPSuite) TestDeleteSecurityGroupRule(c *gc.C) {
-	group1 := neutron.SecurityGroupV2{Id: "1", Name: "src"}
-	group2 := neutron.SecurityGroupV2{Id: "2", Name: "tgt"}
+	group1 := neutron.SecurityGroupV2{Id: "1", Name: "src", TenantId: s.service.TenantId}
+	group2 := neutron.SecurityGroupV2{Id: "2", Name: "tgt", TenantId: s.service.TenantId}
 	err := s.service.addSecurityGroup(group1)
 	c.Assert(err, gc.IsNil)
 	defer s.service.removeSecurityGroup(group1.Id)
@@ -599,7 +598,7 @@ func (s *NeutronHTTPSuite) TestDeleteSecurityGroupRule(c *gc.C) {
 }
 
 func (s *NeutronHTTPSuite) TestPostFloatingIPV2(c *gc.C) {
-	fip := neutron.FloatingIPV2{Id: "1", IP: "10.0.0.1", FloatingNetworkId: "neutron"}
+	fip := neutron.FloatingIPV2{Id: "1", IP: "10.0.0.1", FloatingNetworkId: "998"}
 	c.Assert(s.service.allFloatingIPs(), gc.HasLen, 0)
 	var expected struct {
 		IP neutron.FloatingIPV2 `json:"floating_ip"`
@@ -667,7 +666,7 @@ func (s *NeutronHTTPSuite) TestDeleteFloatingIP(c *gc.C) {
 func (s *NeutronHTTPSuite) TestGetNetworks(c *gc.C) {
 	// There are always 2 networks
 	networks := s.service.allNetworks()
-	c.Assert(networks, gc.HasLen, 2)
+	c.Assert(networks, gc.HasLen, 3)
 	var expected struct {
 		Networks []neutron.NetworkV2 `json:"networks"`
 	}
@@ -676,7 +675,6 @@ func (s *NeutronHTTPSuite) TestGetNetworks(c *gc.C) {
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expected)
 	c.Assert(expected.Networks, gc.HasLen, len(networks))
-	//fmt.Printf("TestGetNetworks(): expected.Networks = %q\n", expected.Networks)
 	var expectedNetwork struct {
 		Network neutron.NetworkV2 `json:"network"`
 	}
@@ -685,8 +683,6 @@ func (s *NeutronHTTPSuite) TestGetNetworks(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 	assertJSON(c, resp, &expectedNetwork)
-	//fmt.Printf("TestGetNetworks(): expectedNetwork.Network = %q\n", expectedNetwork.Network)
-	//fmt.Printf("TestGetNetworks(): networks = %q\n", networks)
 	c.Assert(expectedNetwork.Network, gc.DeepEquals, networks[0])
 }
 
@@ -720,6 +716,7 @@ func (s *NeutronHTTPSSuite) SetUpSuite(c *gc.C) {
 	s.token = userInfo.Token
 	c.Assert(s.Server.URL[:8], gc.Equals, "https://")
 	s.service = New(s.Server.URL, versionPath, userInfo.TenantId, region, identityDouble, nil)
+	s.service.AddNeutronModel(neutronmodel.New())
 }
 
 func (s *NeutronHTTPSSuite) TearDownSuite(c *gc.C) {
